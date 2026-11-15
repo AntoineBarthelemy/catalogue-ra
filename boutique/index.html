@@ -1,0 +1,129 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
+<title>Voir chez moi, démo boutique</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap">
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.0.0/dist/model-viewer.min.js"></script>
+<style>
+/* Mise en page : bandeau d'explication pour la boutique, puis une vraie fiche produit (vue 3D à gauche, achat à droite), puis l'offre en trois lignes. */
+:root {
+  --fond: #f6f4f0; --surface: #ffffff; --texte: #23201c; --doux: #6b645b; --trait: #e3ddd4;
+  --accent: #2e5b4f; --accent-texte: #ffffff; --scene: #ece7df; --info: #6a4a14; --info-fond: #f7ecd6;
+  --f-titre: "Fraunces", Georgia, serif; --f-texte: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --fond: #161513; --surface: #201e1b; --texte: #ece8e1; --doux: #aaa298; --trait: #34302b;
+  --accent: #7cc0a9; --accent-texte: #10201b; --scene: #2a2723; --info: #f0cd86; --info-fond: #33291a; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --fond: #161513; --surface: #201e1b; --texte: #ece8e1; --doux: #aaa298; --trait: #34302b;
+  --accent: #7cc0a9; --accent-texte: #10201b; --scene: #2a2723; --info: #f0cd86; --info-fond: #33291a; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--fond); color: var(--texte); font: 15px/1.55 var(--f-texte); }
+.cadre { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.bandeau { background: var(--info-fond); color: var(--info); font-size: 13px; }
+.bandeau .cadre { padding-block: 10px; }
+header.boutique { border-bottom: 1px solid var(--trait); background: var(--surface); }
+header.boutique .cadre { padding-block: 14px; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; justify-content: space-between; }
+.logo { font: 600 22px var(--f-titre); letter-spacing: 0.01em; }
+.menu { display: flex; flex-wrap: wrap; gap: 14px; font-size: 14px; color: var(--doux); }
+.fil { font-size: 13px; color: var(--doux); padding-block: 14px 6px; }
+.fiche { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 28px; padding-block: 6px 32px; }
+@media (max-width: 760px) { .fiche { grid-template-columns: minmax(0, 1fr); } }
+.scene { position: relative; background: var(--scene); border-radius: 14px; overflow: hidden; aspect-ratio: 4 / 3.4; max-width: 100%; }
+model-viewer { width: 100%; height: 100%; background: var(--scene); --poster-color: transparent; }
+.voir { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); }
+.btn { font: 600 15px var(--f-texte); border: 0; border-radius: 999px; padding: 12px 22px; cursor: pointer; background: var(--accent); color: var(--accent-texte); }
+.btn.second { background: transparent; color: var(--texte); border: 1px solid var(--texte); }
+.btn:focus-visible, .vign:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.aide { position: absolute; left: 12px; right: 12px; bottom: 70px; text-align: center; font-size: 12px; color: var(--doux); }
+.vignettes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.vign { font: 500 12px var(--f-texte); text-align: left; background: var(--surface); color: var(--texte); border: 1px solid var(--trait); border-radius: 10px; padding: 8px; cursor: pointer; min-width: 0; overflow-wrap: anywhere; }
+.vign[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.achat { display: grid; gap: 14px; align-content: start; min-width: 0; }
+h1 { font: 600 clamp(24px, 4vw, 32px)/1.15 var(--f-titre); margin: 0; text-wrap: balance; }
+.prix { font: 600 22px var(--f-texte); font-variant-numeric: tabular-nums; }
+.cotes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--trait); border-radius: 10px; overflow: hidden; }
+.cotes div { padding: 8px 10px; background: var(--surface); }
+.cotes div + div { border-left: 1px solid var(--trait); }
+.cotes span { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--doux); }
+.cotes b { font-variant-numeric: tabular-nums; }
+.boutons { display: flex; flex-wrap: wrap; gap: 10px; }
+.note { font-size: 13px; color: var(--doux); margin: 0; }
+section.offre { border-top: 1px solid var(--trait); padding-block: 28px 48px; }
+h2 { font: 600 22px var(--f-titre); margin: 0 0 14px; }
+.lignes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px; }
+.lignes div { background: var(--surface); border: 1px solid var(--trait); border-radius: 12px; padding: 14px 16px; }
+.lignes b { display: block; font-size: 17px; margin-bottom: 4px; }
+p { margin: 0; }
+</style>
+
+<div class="bandeau"><div class="cadre">Démonstration : la boutique « Atelier Exemple » et ses produits sont fictifs. Les modèles 3D sont des représentations à l'échelle, faites à partir des seules dimensions. Pour votre boutique, ils sont faits d'après vos photos et vos cotes.</div></div>
+<header class="boutique"><div class="cadre"><span class="logo">Atelier Exemple</span><nav class="menu" aria-label="Rayons (exemple)"><span>Salon</span><span>Salle à manger</span><span>Luminaires</span></nav></div></header>
+
+<main class="cadre">
+  <p class="fil" id="fil">Accueil / Salon</p>
+  <div class="fiche">
+    <div>
+      <div class="scene">
+        <model-viewer id="vue" camera-controls touch-action="pan-y" shadow-intensity="1" environment-image="neutral" exposure="1.05"
+          ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor" camera-orbit="30deg 72deg auto" alt="Représentation 3D du produit">
+          <button slot="ar-button" class="btn voir" id="voir">Voir chez moi</button>
+        </model-viewer>
+        <p class="aide" id="aide">Tournez le meuble avec le doigt ou la souris. Sur téléphone, « Voir chez moi » le pose dans votre pièce, à sa vraie taille.</p>
+      </div>
+      <div class="vignettes" id="vignettes"></div>
+    </div>
+    <div class="achat">
+      <h1 id="nom"></h1>
+      <div class="prix" id="prix"></div>
+      <p id="texte"></p>
+      <div class="cotes" aria-label="Dimensions">
+        <div><span>Largeur</span><b id="l"></b></div>
+        <div><span>Profondeur</span><b id="p"></b></div>
+        <div><span>Hauteur</span><b id="h"></b></div>
+      </div>
+      <div class="boutons">
+        <button class="btn second" type="button" id="panier">Ajouter au panier</button>
+      </div>
+      <p class="note" id="retour">Le bouton « Voir chez moi » s'ouvre sur iPhone et Android, sans application à installer. Rien n'est filmé ni envoyé : tout se passe sur le téléphone.</p>
+    </div>
+  </div>
+
+  <section class="offre" aria-labelledby="t-offre">
+    <h2 id="t-offre">Ce bouton sur vos fiches produit</h2>
+    <div class="lignes">
+      <div><b>30 € par modèle</b><p>Fait d'après vos photos et vos cotes, au centimètre. Vous le validez avant la mise en ligne.</p></div>
+      <div><b>19 € par mois</b><p>Hébergement, bouton « Voir chez moi » sur vos fiches, et 2 nouveaux modèles chaque mois.</p></div>
+      <div><b>Aucune installation</b><p>Une ligne à coller dans votre fiche produit (Shopify, PrestaShop, WooCommerce ou site sur mesure).</p></div>
+    </div>
+  </section>
+</main>
+
+<script>
+const PRODUITS = [{"id":"buffet-chene-160","forme":"commode","nom":"Buffet Lison, chêne huilé","largeur_cm":160,"profondeur_cm":45,"hauteur_cm":80,"couleur_hex":"#b0855a","prix":"890 €","texte":"Trois portes, deux tiroirs, pieds compas. Chêne massif huilé.","glb":"modeles/buffet-chene-160.glb","usdz":"modeles/buffet-chene-160.usdz"},{"id":"canape-lin-210","forme":"canape","nom":"Canapé Odile 3 places, lin lavé","largeur_cm":210,"profondeur_cm":92,"hauteur_cm":80,"couleur_hex":"#c9bea9","prix":"1 490 €","texte":"Assise mousse haute résilience, housse déhoussable en lin lavé.","glb":"modeles/canape-lin-210.glb","usdz":"modeles/canape-lin-210.usdz"},{"id":"table-frene-180","forme":"table","nom":"Table Basile 6 places, frêne","largeur_cm":180,"profondeur_cm":90,"hauteur_cm":75,"couleur_hex":"#c8a57a","prix":"720 €","texte":"Plateau en frêne massif, vernis mat. Six couverts.","glb":"modeles/table-frene-180.glb","usdz":"modeles/table-frene-180.usdz"},{"id":"lampadaire-arc-165","forme":"lampadaire","nom":"Lampadaire Mila, métal noir","largeur_cm":40,"profondeur_cm":40,"hauteur_cm":165,"couleur_hex":"#2f2f2f","prix":"189 €","texte":"Abat-jour en coton, pied lesté, ampoule E27.","glb":"modeles/lampadaire-arc-165.glb","usdz":"modeles/lampadaire-arc-165.usdz"}];
+const vue = document.getElementById("vue");
+const vign = document.getElementById("vignettes");
+function montrer(i) {
+  const p = PRODUITS[i];
+  vue.src = p.glb; if (p.usdz) vue.setAttribute("ios-src", p.usdz); else vue.removeAttribute("ios-src");
+  document.getElementById("nom").textContent = p.nom;
+  document.getElementById("prix").textContent = p.prix + " (prix d'exemple)";
+  document.getElementById("texte").textContent = p.texte;
+  document.getElementById("l").textContent = p.largeur_cm + " cm";
+  document.getElementById("p").textContent = p.profondeur_cm + " cm";
+  document.getElementById("h").textContent = p.hauteur_cm + " cm";
+  document.getElementById("fil").textContent = "Accueil / " + (p.forme === "table" ? "Salle à manger" : p.forme === "lampadaire" ? "Luminaires" : "Salon") + " / " + p.nom.split(",")[0];
+  [...vign.children].forEach((b, j) => b.setAttribute("aria-pressed", String(j === i)));
+}
+PRODUITS.forEach((p, i) => {
+  const b = document.createElement("button"); b.type = "button"; b.className = "vign";
+  b.textContent = p.nom.split(",")[0]; b.addEventListener("click", () => montrer(i)); vign.appendChild(b);
+});
+document.getElementById("panier").addEventListener("click", (e) => { e.currentTarget.textContent = "Boutique fictive : rien n'est vendu"; });
+customElements.whenDefined("model-viewer").then(() => {
+  vue.addEventListener("load", () => {
+    if (!vue.canActivateAR) document.getElementById("aide").textContent = "Ici, « Voir chez moi » ne s'ouvre pas (ordinateur ou page intégrée). Ouvrez ce lien sur un téléphone pour poser le meuble dans votre pièce.";
+  });
+});
+montrer(0);
+</script>
