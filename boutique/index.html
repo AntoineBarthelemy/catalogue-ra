@@ -1,4 +1,8 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Voir chez moi, démo boutique</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,9 +39,14 @@ model-viewer { width: 100%; height: 100%; background: var(--scene); --poster-col
 .btn { font: 600 15px var(--f-texte); border: 0; border-radius: 999px; padding: 12px 22px; cursor: pointer; background: var(--accent); color: var(--accent-texte); }
 .btn.second { background: transparent; color: var(--texte); border: 1px solid var(--texte); }
 .btn:focus-visible, .vign:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-.aide { position: absolute; left: 12px; right: 12px; bottom: 70px; text-align: center; font-size: 12px; color: var(--doux); }
-.vignettes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
-.vign { font: 500 12px var(--f-texte); text-align: left; background: var(--surface); color: var(--texte); border: 1px solid var(--trait); border-radius: 10px; padding: 8px; cursor: pointer; min-width: 0; overflow-wrap: anywhere; }
+.aide { margin: 8px 2px 0; font-size: 12px; color: var(--doux); }
+.vignettes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 8px; margin-top: 10px; }
+.vign b { display: block; font-weight: 600; }
+.vign span { color: var(--doux); font-variant-numeric: tabular-nums; }
+.charge { position: absolute; left: 0; top: 0; height: 3px; background: var(--accent); width: 0; transition: width .2s, opacity .4s; }
+.stock { font-size: 13px; color: var(--accent); font-weight: 500; }
+footer { border-top: 1px solid var(--trait); padding-block: 16px 28px; font-size: 12px; color: var(--doux); }
+.vign { font: 500 13px/1.35 var(--f-texte); text-align: left; background: var(--surface); color: var(--texte); border: 1px solid var(--trait); border-radius: 10px; padding: 8px; cursor: pointer; min-width: 0; overflow-wrap: anywhere; }
 .vign[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .achat { display: grid; gap: 14px; align-content: start; min-width: 0; }
 h1 { font: 600 clamp(24px, 4vw, 32px)/1.15 var(--f-titre); margin: 0; text-wrap: balance; }
@@ -56,9 +65,11 @@ h2 { font: 600 22px var(--f-titre); margin: 0 0 14px; }
 .lignes b { display: block; font-size: 17px; margin-bottom: 4px; }
 p { margin: 0; }
 </style>
+</head>
+<body>
 
-<div class="bandeau"><div class="cadre">Démonstration : la boutique « Atelier Exemple » et ses produits sont fictifs. Les modèles 3D sont des représentations à l'échelle, faites à partir des seules dimensions. Pour votre boutique, ils sont faits d'après vos photos et vos cotes.</div></div>
-<header class="boutique"><div class="cadre"><span class="logo">Atelier Exemple</span><nav class="menu" aria-label="Rayons (exemple)"><span>Salon</span><span>Salle à manger</span><span>Luminaires</span></nav></div></header>
+<div class="bandeau"><div class="cadre">Démonstration : la boutique « Atelier Exemple », ses noms et ses prix sont fictifs. Les meubles 3D viennent de la bibliothèque libre Poly Haven (licence CC0). Pour votre boutique, chaque modèle est fait d'après vos photos et vos cotes.</div></div>
+<header class="boutique"><div class="cadre"><span class="logo">Atelier Exemple</span><nav class="menu" aria-label="Rayons (exemple)"><span>Salon</span><span>Rangement</span><span>Salle à manger</span><span>Nouveautés</span></nav></div></header>
 
 <main class="cadre">
   <p class="fil" id="fil">Accueil / Salon</p>
@@ -66,16 +77,18 @@ p { margin: 0; }
     <div>
       <div class="scene">
         <model-viewer id="vue" camera-controls touch-action="pan-y" shadow-intensity="1" environment-image="neutral" exposure="1.05"
-          ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor" camera-orbit="30deg 72deg auto" alt="Représentation 3D du produit">
+          ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor" camera-orbit="-30deg 75deg auto" interaction-prompt="none" alt="Vue 3D du meuble">
+          <div class="charge" id="charge" slot="progress-bar"></div>
           <button slot="ar-button" class="btn voir" id="voir">Voir chez moi</button>
         </model-viewer>
-        <p class="aide" id="aide">Tournez le meuble avec le doigt ou la souris. Sur téléphone, « Voir chez moi » le pose dans votre pièce, à sa vraie taille.</p>
       </div>
+      <p class="aide" id="aide">Tournez le meuble avec le doigt ou la souris. Sur téléphone, « Voir chez moi » le pose dans votre pièce, à sa vraie taille.</p>
       <div class="vignettes" id="vignettes"></div>
     </div>
     <div class="achat">
       <h1 id="nom"></h1>
       <div class="prix" id="prix"></div>
+      <p class="stock">En stock, livraison en 2 à 3 semaines (exemple)</p>
       <p id="texte"></p>
       <div class="cotes" aria-label="Dimensions">
         <div><span>Largeur</span><b id="l"></b></div>
@@ -94,32 +107,39 @@ p { margin: 0; }
     <div class="lignes">
       <div><b>30 € par modèle</b><p>Fait d'après vos photos et vos cotes, au centimètre. Vous le validez avant la mise en ligne.</p></div>
       <div><b>19 € par mois</b><p>Hébergement, bouton « Voir chez moi » sur vos fiches, et 2 nouveaux modèles chaque mois.</p></div>
+      <div><b>Premier modèle offert</b><p>Choisissez un de vos produits : nous le modélisons gratuitement pour que vous jugiez sur pièce.</p></div>
       <div><b>Aucune installation</b><p>Une ligne à coller dans votre fiche produit (Shopify, PrestaShop, WooCommerce ou site sur mesure).</p></div>
     </div>
   </section>
 </main>
+<footer><div class="cadre">Modèles 3D de cette démonstration : Poly Haven (polyhaven.com), licence CC0, utilisables librement. Aucune image de votre pièce n'est enregistrée.</div></footer>
 
 <script>
-const PRODUITS = [{"id":"buffet-chene-160","forme":"commode","nom":"Buffet Lison, chêne huilé","largeur_cm":160,"profondeur_cm":45,"hauteur_cm":80,"couleur_hex":"#b0855a","prix":"890 €","texte":"Trois grands tiroirs, pieds compas. Chêne massif huilé.","glb":"modeles/buffet-chene-160.glb","usdz":"modeles/buffet-chene-160.usdz"},{"id":"canape-lin-210","forme":"canape","nom":"Canapé Odile 3 places, lin lavé","largeur_cm":210,"profondeur_cm":92,"hauteur_cm":80,"couleur_hex":"#c9bea9","prix":"1 490 €","texte":"Assise mousse haute résilience, housse déhoussable en lin lavé.","glb":"modeles/canape-lin-210.glb","usdz":"modeles/canape-lin-210.usdz"},{"id":"table-frene-180","forme":"table","nom":"Table Basile 6 places, frêne","largeur_cm":180,"profondeur_cm":90,"hauteur_cm":75,"couleur_hex":"#c8a57a","prix":"720 €","texte":"Plateau en frêne massif, vernis mat. Six couverts.","glb":"modeles/table-frene-180.glb","usdz":"modeles/table-frene-180.usdz"},{"id":"lampadaire-arc-165","forme":"lampadaire","nom":"Lampadaire Mila, métal noir","largeur_cm":40,"profondeur_cm":40,"hauteur_cm":165,"couleur_hex":"#2f2f2f","prix":"189 €","texte":"Abat-jour en coton, pied lesté, ampoule E27.","glb":"modeles/lampadaire-arc-165.glb","usdz":"modeles/lampadaire-arc-165.usdz"}];
+const PRODUITS = [{"id":"enfilade-noyer-cannage","rayon":"Rangement","nom":"Enfilade Lison, noyer et lattes","largeur_cm":244,"profondeur_cm":52,"hauteur_cm":68,"prix":"1 290 €","texte":"Placage noyer, plateau en pierre claire, deux portes à lattes de bois, pieds en métal noir. Grand rangement pour le salon ou la salle à manger.","source":"modern_wooden_cabinet","glb":"modeles/enfilade-noyer-cannage.glb"},{"id":"fauteuil-chene-cuir","rayon":"Salon","nom":"Fauteuil Odile, chêne et cuir noir","largeur_cm":82,"profondeur_cm":99,"hauteur_cm":102,"prix":"690 €","texte":"Structure en chêne massif, coussins en cuir pleine fleur noir, accoudoirs en bois.","source":"modern_arm_chair_01","glb":"modeles/fauteuil-chene-cuir.glb"},{"id":"table-basse-beton-chene","rayon":"Salon","nom":"Table basse Basile, béton et chêne","largeur_cm":120,"profondeur_cm":60,"hauteur_cm":39,"prix":"490 €","texte":"Plateau effet béton, angles incrustés et piètement traîneau en chêne massif.","source":"modern_coffee_table_01","glb":"modeles/table-basse-beton-chene.glb"},{"id":"fauteuil-pivotant-cuir","rayon":"Salon","nom":"Fauteuil pivotant Mila, cuir cognac","largeur_cm":101,"profondeur_cm":119,"hauteur_cm":117,"prix":"1 150 €","texte":"Coque en bois moulé, assise en cuir cognac capitonné, pied étoile pivotant en métal chromé.","source":"mid_century_lounge_chair","glb":"modeles/fauteuil-pivotant-cuir.glb"},{"id":"canape-capitonne-cuir","rayon":"Salon","nom":"Canapé Émile 2 places, cuir capitonné","largeur_cm":181,"profondeur_cm":82,"hauteur_cm":71,"prix":"1 690 €","texte":"Dossier capitonné, cuir noir patiné, pieds galbés en bois foncé.","source":"sofa_02","glb":"modeles/canape-capitonne-cuir.glb"}];
 const vue = document.getElementById("vue");
 const vign = document.getElementById("vignettes");
 function montrer(i) {
   const p = PRODUITS[i];
-  vue.src = p.glb; if (p.usdz) vue.setAttribute("ios-src", p.usdz); else vue.removeAttribute("ios-src");
+  vue.src = p.glb;
   document.getElementById("nom").textContent = p.nom;
   document.getElementById("prix").textContent = p.prix + " (prix d'exemple)";
   document.getElementById("texte").textContent = p.texte;
   document.getElementById("l").textContent = p.largeur_cm + " cm";
   document.getElementById("p").textContent = p.profondeur_cm + " cm";
   document.getElementById("h").textContent = p.hauteur_cm + " cm";
-  document.getElementById("fil").textContent = "Accueil / " + (p.forme === "table" ? "Salle à manger" : p.forme === "lampadaire" ? "Luminaires" : "Salon") + " / " + p.nom.split(",")[0];
+  document.getElementById("fil").textContent = "Accueil / " + p.rayon + " / " + p.nom.split(",")[0];
   [...vign.children].forEach((b, j) => b.setAttribute("aria-pressed", String(j === i)));
 }
 PRODUITS.forEach((p, i) => {
   const b = document.createElement("button"); b.type = "button"; b.className = "vign";
-  b.textContent = p.nom.split(",")[0]; b.addEventListener("click", () => montrer(i)); vign.appendChild(b);
+  const t = document.createElement("b"); t.textContent = p.nom.split(",")[0];
+  const s = document.createElement("span"); s.textContent = p.prix; b.append(t, s); b.addEventListener("click", () => montrer(i)); vign.appendChild(b);
 });
 document.getElementById("panier").addEventListener("click", (e) => { e.currentTarget.textContent = "Boutique fictive : rien n'est vendu"; });
+vue.addEventListener("progress", (e) => {
+  const c = document.getElementById("charge"), f = e.detail.totalProgress;
+  c.style.width = (f * 100) + "%"; c.style.opacity = f >= 1 ? "0" : "1";
+});
 customElements.whenDefined("model-viewer").then(() => {
   vue.addEventListener("load", () => {
     if (!vue.canActivateAR) document.getElementById("aide").textContent = "Ici, « Voir chez moi » ne s'ouvre pas (ordinateur ou page intégrée). Ouvrez ce lien sur un téléphone pour poser le meuble dans votre pièce.";
@@ -127,3 +147,6 @@ customElements.whenDefined("model-viewer").then(() => {
 });
 montrer(0);
 </script>
+
+</body>
+</html>
