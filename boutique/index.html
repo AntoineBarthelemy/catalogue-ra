@@ -76,7 +76,7 @@ p { margin: 0; }
   <div class="fiche">
     <div>
       <div class="scene">
-        <model-viewer id="vue" camera-controls touch-action="pan-y" shadow-intensity="1" environment-image="neutral" exposure="1.05"
+        <model-viewer id="vue" camera-controls touch-action="pan-y" shadow-intensity="1" shadow-softness="0.6" environment-image="neutral" exposure="1"
           ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor" camera-orbit="-30deg 75deg auto" interaction-prompt="none" alt="Vue 3D du meuble">
           <div class="charge" id="charge" slot="progress-bar"></div>
           <button slot="ar-button" class="btn voir" id="voir">Voir chez moi</button>
