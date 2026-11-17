@@ -22,7 +22,7 @@
   --fond: #161513; --surface: #201e1b; --texte: #ece8e1; --doux: #aaa298; --trait: #34302b;
   --accent: #7cc0a9; --accent-texte: #10201b; --scene: #2a2723; --info: #f0cd86; --info-fond: #33291a; color-scheme: dark; }
 * { box-sizing: border-box; }
-body { background: var(--fond); color: var(--texte); font: 15px/1.55 var(--f-texte); }
+body { margin: 0; background: var(--fond); color: var(--texte); font: 15px/1.55 var(--f-texte); }
 .cadre { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .bandeau { background: var(--info-fond); color: var(--info); font-size: 13px; }
 .bandeau .cadre { padding-block: 10px; }
@@ -62,6 +62,28 @@ section.offre { border-top: 1px solid var(--trait); padding-block: 28px 48px; }
 h2 { font: 600 22px var(--f-titre); margin: 0 0 14px; }
 .lignes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px; }
 .lignes div { background: var(--surface); border: 1px solid var(--trait); border-radius: 12px; padding: 14px 16px; }
+/* Photos d'ambiance : rendus 3D du modèle dans de vraies pièces photographiées. */
+.ambiances h3 { font: 600 15px var(--f-texte); margin: 18px 0 8px; }
+.galerie { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.galerie button { padding: 0; border: 1px solid var(--trait); border-radius: 10px; overflow: hidden; background: var(--scene); cursor: zoom-in; aspect-ratio: 3 / 2; }
+.galerie img { width: 100%; height: 100%; object-fit: cover; display: block; }
+dialog { border: 0; border-radius: 16px; padding: 0; background: var(--surface); color: var(--texte); width: min(980px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); }
+dialog::backdrop { background: rgba(10, 9, 8, .72); }
+.dlg { padding: 16px; display: grid; gap: 12px; }
+.dlg-tete { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.dlg-tete h2 { margin: 0; }
+.fermer { font: 600 22px var(--f-texte); background: transparent; color: var(--texte); border: 1px solid var(--trait); border-radius: 999px; width: 40px; height: 40px; cursor: pointer; flex: none; }
+.grande { width: 100%; border-radius: 10px; display: block; }
+.ph-scene { position: relative; margin: 0 auto; border-radius: 10px; overflow: hidden; background: var(--scene); touch-action: none; user-select: none; }
+.ph-scene img { width: 100%; height: 100%; display: block; pointer-events: none; }
+.ph-scene model-viewer { position: absolute; height: auto; background: transparent; cursor: grab; touch-action: none; outline: 1px dashed rgba(255,255,255,.55); outline-offset: -1px; }
+.ph-scene model-viewer.libre { outline-color: transparent; }
+.reglages { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 8px 16px; }
+.reglages label { display: grid; gap: 2px; font-size: 13px; color: var(--doux); }
+.reglages input { width: 100%; accent-color: var(--accent); }
+.fichier { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+label.btn { display: inline-block; }
+[hidden] { display: none !important; }
 .lignes b { display: block; font-size: 17px; margin-bottom: 4px; }
 p { margin: 0; }
 </style>
@@ -84,6 +106,11 @@ p { margin: 0; }
       </div>
       <p class="aide" id="aide">Tournez le meuble avec le doigt ou la souris. Sur téléphone, « Voir chez moi » le pose dans votre pièce, à sa vraie taille.</p>
       <div class="vignettes" id="vignettes"></div>
+      <div class="ambiances">
+        <h3>En situation</h3>
+        <div class="galerie" id="galerie"></div>
+        <p class="aide">Rendus 3D de notre modèle du meuble, posé dans de vraies pièces photographiées (photos à 360° Poly Haven, licence CC0).</p>
+      </div>
     </div>
     <div class="achat">
       <h1 id="nom"></h1>
@@ -96,26 +123,58 @@ p { margin: 0; }
         <div><span>Hauteur</span><b id="h"></b></div>
       </div>
       <div class="boutons">
+        <button class="btn" type="button" id="avecPhoto">Voir avec ma photo</button>
         <button class="btn second" type="button" id="panier">Ajouter au panier</button>
       </div>
-      <p class="note" id="retour">Le bouton « Voir chez moi » s'ouvre sur iPhone et Android, sans application à installer. Rien n'est filmé ni envoyé : tout se passe sur le téléphone.</p>
+      <p class="note" id="retour">« Voir chez moi » pose le meuble dans votre pièce avec la caméra du téléphone (iPhone et Android, sans application). « Voir avec ma photo » le place sur une photo de votre pièce, sur téléphone comme sur ordinateur. Dans les deux cas, rien n'est envoyé : tout se passe sur votre appareil.</p>
     </div>
   </div>
 
   <section class="offre" aria-labelledby="t-offre">
-    <h2 id="t-offre">Ce bouton sur vos fiches produit</h2>
+    <h2 id="t-offre">Ces boutons sur vos fiches produit</h2>
     <div class="lignes">
       <div><b>30 € par modèle</b><p>Fait d'après vos photos et vos cotes, au centimètre. Vous le validez avant la mise en ligne.</p></div>
-      <div><b>19 € par mois</b><p>Hébergement, bouton « Voir chez moi » sur vos fiches, et 2 nouveaux modèles chaque mois.</p></div>
+      <div><b>19 € par mois</b><p>Hébergement, boutons « Voir chez moi » et « Voir avec ma photo » sur vos fiches, et 2 nouveaux modèles chaque mois.</p></div>
+      <div><b>Photos d'ambiance incluses</b><p>3 rendus de chaque meuble dans une vraie pièce, pour votre fiche produit, faits à partir du même modèle 3D.</p></div>
       <div><b>Premier modèle offert</b><p>Choisissez un de vos produits : nous le modélisons gratuitement pour que vous jugiez sur pièce.</p></div>
       <div><b>Aucune installation</b><p>Une ligne à coller dans votre fiche produit (Shopify, PrestaShop, WooCommerce ou site sur mesure).</p></div>
     </div>
   </section>
 </main>
-<footer><div class="cadre">Modèles 3D de cette démonstration : Poly Haven (polyhaven.com), licence CC0, utilisables librement. Aucune image de votre pièce n'est enregistrée.</div></footer>
+<footer><div class="cadre">Modèles 3D et photos de pièces à 360° de cette démonstration : Poly Haven (polyhaven.com), licence CC0, utilisables librement. Aucune image de votre pièce n'est envoyée ni enregistrée.</div></footer>
+
+<dialog id="dlgAmb" aria-label="Photo d'ambiance">
+  <div class="dlg">
+    <div class="dlg-tete"><h2 id="tAmb">En situation</h2><button class="fermer" type="button" data-fermer aria-label="Fermer">×</button></div>
+    <img class="grande" id="ambGrande" alt="">
+    <p class="aide">Rendu 3D de notre modèle dans une pièce photographiée. Les couleurs et la forme sont celles du modèle.</p>
+  </div>
+</dialog>
+
+<dialog id="dlgPhoto" aria-labelledby="tPhoto">
+  <div class="dlg">
+    <div class="dlg-tete"><h2 id="tPhoto">Voir avec ma photo</h2><button class="fermer" type="button" data-fermer aria-label="Fermer">×</button></div>
+    <p class="note" id="phIntro">Photographiez l'endroit de votre pièce où ira le meuble, ou choisissez une photo. Elle reste sur votre appareil : rien n'est envoyé ni enregistré.</p>
+    <div><label class="btn" for="phFichier" id="phChoisir">Prendre ou choisir une photo</label><input class="fichier" type="file" id="phFichier" accept="image/*"></div>
+    <div class="ph-scene" id="phScene" hidden>
+      <img id="phImg" alt="Votre pièce">
+      <model-viewer id="phVue" shadow-intensity="1.1" shadow-softness="0.5" environment-image="neutral" exposure="1" field-of-view="25deg" interaction-prompt="none" disable-zoom alt="Le meuble posé sur votre photo"></model-viewer>
+    </div>
+    <div class="reglages" id="phReglages" hidden>
+      <label>Taille <input type="range" id="phTaille" min="10" max="100" value="45"></label>
+      <label>Rotation <input type="range" id="phRot" min="-180" max="180" value="-25"></label>
+      <label>Hauteur de vue <input type="range" id="phVueH" min="0" max="45" value="15"></label>
+    </div>
+    <p class="aide" id="phAide" hidden></p>
+    <div class="boutons" id="phBoutons" hidden>
+      <button class="btn" type="button" id="phEnr">Enregistrer l'image</button>
+      <label class="btn second" for="phFichier">Changer de photo</label>
+    </div>
+  </div>
+</dialog>
 
 <script>
-const PRODUITS = [{"id":"enfilade-noyer-cannage","rayon":"Rangement","nom":"Enfilade Lison, noyer et lattes","largeur_cm":244,"profondeur_cm":52,"hauteur_cm":68,"prix":"1 290 €","texte":"Placage noyer, plateau en pierre claire, deux portes à lattes de bois, pieds en métal noir. Grand rangement pour le salon ou la salle à manger.","source":"modern_wooden_cabinet","glb":"modeles/enfilade-noyer-cannage.glb"},{"id":"fauteuil-chene-cuir","rayon":"Salon","nom":"Fauteuil Odile, chêne et cuir noir","largeur_cm":82,"profondeur_cm":99,"hauteur_cm":102,"prix":"690 €","texte":"Structure en chêne massif, coussins en cuir pleine fleur noir, accoudoirs en bois.","source":"modern_arm_chair_01","glb":"modeles/fauteuil-chene-cuir.glb"},{"id":"table-basse-beton-chene","rayon":"Salon","nom":"Table basse Basile, béton et chêne","largeur_cm":120,"profondeur_cm":60,"hauteur_cm":39,"prix":"490 €","texte":"Plateau effet béton, angles incrustés et piètement traîneau en chêne massif.","source":"modern_coffee_table_01","glb":"modeles/table-basse-beton-chene.glb"},{"id":"fauteuil-pivotant-cuir","rayon":"Salon","nom":"Fauteuil pivotant Mila, cuir cognac","largeur_cm":101,"profondeur_cm":119,"hauteur_cm":117,"prix":"1 150 €","texte":"Coque en bois moulé, assise en cuir cognac capitonné, pied étoile pivotant en métal chromé.","source":"mid_century_lounge_chair","glb":"modeles/fauteuil-pivotant-cuir.glb"},{"id":"canape-capitonne-cuir","rayon":"Salon","nom":"Canapé Émile 2 places, cuir capitonné","largeur_cm":181,"profondeur_cm":82,"hauteur_cm":71,"prix":"1 690 €","texte":"Dossier capitonné, cuir noir patiné, pieds galbés en bois foncé.","source":"sofa_02","glb":"modeles/canape-capitonne-cuir.glb"}];
+const PRODUITS = [{"id":"enfilade-noyer-cannage","rayon":"Rangement","nom":"Enfilade Lison, noyer et lattes","largeur_cm":244,"profondeur_cm":52,"hauteur_cm":68,"prix":"1 290 €","texte":"Placage noyer, plateau en pierre claire, deux portes à lattes de bois, pieds en métal noir. Grand rangement pour le salon ou la salle à manger.","source":"modern_wooden_cabinet","ambiances":["ambiances/enfilade-noyer-cannage-1.jpg","ambiances/enfilade-noyer-cannage-2.jpg","ambiances/enfilade-noyer-cannage-3.jpg"],"glb":"modeles/enfilade-noyer-cannage.glb"},{"id":"fauteuil-chene-cuir","rayon":"Salon","nom":"Fauteuil Odile, chêne et cuir noir","largeur_cm":82,"profondeur_cm":99,"hauteur_cm":102,"prix":"690 €","texte":"Structure en chêne massif, coussins en cuir pleine fleur noir, accoudoirs en bois.","source":"modern_arm_chair_01","ambiances":["ambiances/fauteuil-chene-cuir-1.jpg","ambiances/fauteuil-chene-cuir-2.jpg","ambiances/fauteuil-chene-cuir-3.jpg"],"glb":"modeles/fauteuil-chene-cuir.glb"},{"id":"table-basse-beton-chene","rayon":"Salon","nom":"Table basse Basile, béton et chêne","largeur_cm":120,"profondeur_cm":60,"hauteur_cm":39,"prix":"490 €","texte":"Plateau effet béton, angles incrustés et piètement traîneau en chêne massif.","source":"modern_coffee_table_01","ambiances":["ambiances/table-basse-beton-chene-1.jpg","ambiances/table-basse-beton-chene-2.jpg","ambiances/table-basse-beton-chene-3.jpg"],"glb":"modeles/table-basse-beton-chene.glb"},{"id":"fauteuil-pivotant-cuir","rayon":"Salon","nom":"Fauteuil pivotant Mila, cuir cognac","largeur_cm":101,"profondeur_cm":119,"hauteur_cm":117,"prix":"1 150 €","texte":"Coque en bois moulé, assise en cuir cognac capitonné, pied étoile pivotant en métal chromé.","source":"mid_century_lounge_chair","ambiances":["ambiances/fauteuil-pivotant-cuir-1.jpg","ambiances/fauteuil-pivotant-cuir-2.jpg","ambiances/fauteuil-pivotant-cuir-3.jpg"],"glb":"modeles/fauteuil-pivotant-cuir.glb"},{"id":"canape-capitonne-cuir","rayon":"Salon","nom":"Canapé Émile 2 places, cuir capitonné","largeur_cm":181,"profondeur_cm":82,"hauteur_cm":71,"prix":"1 690 €","texte":"Dossier capitonné, cuir noir patiné, pieds galbés en bois foncé.","source":"sofa_02","ambiances":["ambiances/canape-capitonne-cuir-1.jpg","ambiances/canape-capitonne-cuir-2.jpg","ambiances/canape-capitonne-cuir-3.jpg"],"glb":"modeles/canape-capitonne-cuir.glb"}];
 const vue = document.getElementById("vue");
 const vign = document.getElementById("vignettes");
 function montrer(i) {
@@ -129,7 +188,93 @@ function montrer(i) {
   document.getElementById("h").textContent = p.hauteur_cm + " cm";
   document.getElementById("fil").textContent = "Accueil / " + p.rayon + " / " + p.nom.split(",")[0];
   [...vign.children].forEach((b, j) => b.setAttribute("aria-pressed", String(j === i)));
+  courant = i;
+  const gal = document.getElementById("galerie"); gal.replaceChildren();
+  (p.ambiances ?? []).forEach((src, k) => {
+    const b = document.createElement("button"); b.type = "button"; b.setAttribute("aria-label", "Agrandir la photo d'ambiance " + (k + 1));
+    const im = document.createElement("img"); im.src = src; im.alt = p.nom.split(",")[0] + " en situation, vue " + (k + 1); im.loading = "lazy";
+    b.appendChild(im); b.addEventListener("click", () => { const g = document.getElementById("ambGrande"); g.src = src; g.alt = im.alt; document.getElementById("tAmb").textContent = p.nom.split(",")[0] + ", en situation"; document.getElementById("dlgAmb").showModal(); });
+    gal.appendChild(b);
+  });
+  document.querySelector(".ambiances").hidden = !(p.ambiances ?? []).length;
 }
+let courant = 0;
+document.querySelectorAll("[data-fermer]").forEach((b) => b.addEventListener("click", () => b.closest("dialog").close()));
+document.querySelectorAll("dialog").forEach((d) => d.addEventListener("click", (e) => { if (e.target === d) d.close(); }));
+
+// « Voir avec ma photo » : la photo est lue sur l'appareil (URL locale), le meuble 3D est dessiné par-dessus, rien n'est envoyé.
+const ph = { scene: document.getElementById("phScene"), img: document.getElementById("phImg"), vue: document.getElementById("phVue"),
+  taille: document.getElementById("phTaille"), rot: document.getElementById("phRot"), haut: document.getElementById("phVueH"), x: 50, y: 68, url: null };
+function phCadre() {
+  const r = ph.img.naturalWidth / ph.img.naturalHeight || 4 / 3;
+  const maxH = Math.max(220, window.innerHeight * 0.55);
+  ph.scene.style.width = Math.min(ph.scene.parentElement.clientWidth, maxH * r) + "px";
+  ph.scene.style.aspectRatio = String(r);
+  phPlacer();
+}
+function phPlacer() {
+  const l = Number(ph.taille.value);
+  ph.vue.style.width = l + "%"; ph.vue.style.aspectRatio = "4 / 3";
+  ph.vue.style.left = (ph.x - l / 2) + "%";
+  const hPct = l * (3 / 4) * (ph.scene.clientWidth / Math.max(1, ph.scene.clientHeight));
+  ph.vue.style.top = (ph.y - hPct / 2) + "%";
+  ph.vue.cameraOrbit = `${ph.rot.value}deg ${90 - Number(ph.haut.value)}deg auto`;
+}
+function phOuvrir() {
+  const p = PRODUITS[courant];
+  ph.vue.src = p.glb;
+  document.getElementById("tPhoto").textContent = "Voir avec ma photo : " + p.nom.split(",")[0];
+  document.getElementById("phAide").textContent = "Faites glisser le meuble pour le placer, puis réglez sa taille à l'œil (largeur réelle : " + p.largeur_cm + " cm, hauteur : " + p.hauteur_cm + " cm). C'est notre modèle 3D du meuble, aux couleurs et aux formes exactes, posé sur votre photo : une simulation, pas une photo retouchée.";
+  document.getElementById("dlgPhoto").showModal();
+  if (ph.url) phCadre();
+}
+document.getElementById("avecPhoto").addEventListener("click", phOuvrir);
+document.getElementById("phFichier").addEventListener("change", (e) => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  if (ph.url) URL.revokeObjectURL(ph.url);
+  ph.url = URL.createObjectURL(f); ph.img.src = ph.url; ph.x = 50; ph.y = 68;
+  ph.img.onload = () => {
+    ["phScene", "phReglages", "phAide", "phBoutons"].forEach((id) => { document.getElementById(id).hidden = false; });
+    document.getElementById("phChoisir").hidden = true; document.getElementById("phIntro").hidden = true;
+    phCadre();
+  };
+  e.target.value = "";
+});
+[ph.taille, ph.rot, ph.haut].forEach((c) => c.addEventListener("input", phPlacer));
+window.addEventListener("resize", () => { if (ph.url && document.getElementById("dlgPhoto").open) phCadre(); });
+let glisse = null;
+ph.vue.addEventListener("pointerdown", (e) => { glisse = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: ph.x, y: ph.y }; ph.vue.setPointerCapture(e.pointerId); ph.vue.style.cursor = "grabbing"; });
+ph.vue.addEventListener("pointermove", (e) => {
+  if (!glisse || e.pointerId !== glisse.id) return;
+  ph.x = Math.min(100, Math.max(0, glisse.x + (e.clientX - glisse.x0) / ph.scene.clientWidth * 100));
+  ph.y = Math.min(100, Math.max(0, glisse.y + (e.clientY - glisse.y0) / ph.scene.clientHeight * 100));
+  phPlacer();
+});
+const phLacher = () => { glisse = null; ph.vue.style.cursor = "grab"; };
+ph.vue.addEventListener("pointerup", phLacher); ph.vue.addEventListener("pointercancel", phLacher);
+document.getElementById("phEnr").addEventListener("click", async (e) => {
+  const bouton = e.currentTarget; bouton.disabled = true;
+  try {
+    // Taille de l'image : la finesse de l'écran (pas plus), pour que le meuble ne soit pas agrandi et flou.
+    const W = Math.min(ph.img.naturalWidth, Math.max(1080, Math.round(ph.scene.clientWidth * (window.devicePixelRatio || 1)))), k = W / ph.scene.clientWidth, H = Math.round(ph.scene.clientHeight * k);
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    const g = c.getContext("2d"); g.drawImage(ph.img, 0, 0, W, H);
+    ph.vue.classList.add("libre");
+    const rs = ph.scene.getBoundingClientRect(), rv = ph.vue.getBoundingClientRect();
+    // Le temps de la capture, le meuble est rendu en plus grand puis réduit à l'écran : il reste net dans l'image enregistrée.
+    const f = Math.min(4, Math.max(1, k / (window.devicePixelRatio || 1))), avant = ph.vue.style.cssText;
+    if (f > 1.05) {
+      Object.assign(ph.vue.style, { width: rv.width * f + "px", left: rv.left - rs.left + "px", top: rv.top - rs.top + "px", transform: "scale(" + 1 / f + ")", transformOrigin: "0 0" });
+      await new Promise((r) => setTimeout(r, 900));
+    }
+    const meuble = await createImageBitmap(await ph.vue.toBlob({ mimeType: "image/png" }));
+    ph.vue.style.cssText = avant;
+    g.drawImage(meuble, (rv.left - rs.left) * k, (rv.top - rs.top) * k, rv.width * k, rv.height * k);
+    const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.9));
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "ma-piece-" + PRODUITS[courant].id + ".jpg";
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  } finally { ph.vue.classList.remove("libre"); bouton.disabled = false; }
+});
 PRODUITS.forEach((p, i) => {
   const b = document.createElement("button"); b.type = "button"; b.className = "vign";
   const t = document.createElement("b"); t.textContent = p.nom.split(",")[0];
