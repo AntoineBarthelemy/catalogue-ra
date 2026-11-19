@@ -84,6 +84,10 @@ dialog::backdrop { background: rgba(10, 9, 8, .72); }
 .fichier { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 label.btn { display: inline-block; }
 [hidden] { display: none !important; }
+.ph-photos { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+.ph-photos button { flex: none; width: 64px; height: 64px; padding: 0; border: 2px solid var(--trait); border-radius: 8px; overflow: hidden; background: var(--scene); cursor: pointer; }
+.ph-photos button[aria-pressed="true"] { border-color: var(--accent); }
+.ph-photos img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .lignes b { display: block; font-size: 17px; margin-bottom: 4px; }
 p { margin: 0; }
 </style>
@@ -135,13 +139,12 @@ p { margin: 0; }
     <div class="lignes">
       <div><b>30 € par modèle</b><p>Fait d'après vos photos et vos cotes, au centimètre. Vous le validez avant la mise en ligne.</p></div>
       <div><b>19 € par mois</b><p>Hébergement, boutons « Voir chez moi » et « Voir avec ma photo » sur vos fiches, et 2 nouveaux modèles chaque mois.</p></div>
-      <div><b>Photos d'ambiance incluses</b><p>3 rendus de chaque meuble dans une vraie pièce, pour votre fiche produit, faits à partir du même modèle 3D.</p></div>
       <div><b>Premier modèle offert</b><p>Choisissez un de vos produits : nous le modélisons gratuitement pour que vous jugiez sur pièce.</p></div>
       <div><b>Aucune installation</b><p>Une ligne à coller dans votre fiche produit (Shopify, PrestaShop, WooCommerce ou site sur mesure).</p></div>
     </div>
   </section>
 </main>
-<footer><div class="cadre">Modèles 3D et photos de pièces à 360° de cette démonstration : Poly Haven (polyhaven.com), licence CC0, utilisables librement. Aucune image de votre pièce n'est envoyée ni enregistrée.</div></footer>
+<footer><div class="cadre">Modèles 3D de cette démonstration : Poly Haven (polyhaven.com), licence CC0, utilisables librement. Aucune image de votre pièce n'est envoyée ni enregistrée.</div></footer>
 
 <dialog id="dlgAmb" aria-label="Photo d'ambiance">
   <div class="dlg">
@@ -154,8 +157,9 @@ p { margin: 0; }
 <dialog id="dlgPhoto" aria-labelledby="tPhoto">
   <div class="dlg">
     <div class="dlg-tete"><h2 id="tPhoto">Voir avec ma photo</h2><button class="fermer" type="button" data-fermer aria-label="Fermer">×</button></div>
-    <p class="note" id="phIntro">Photographiez l'endroit de votre pièce où ira le meuble, ou choisissez une photo. Elle reste sur votre appareil : rien n'est envoyé ni enregistré.</p>
-    <div><label class="btn" for="phFichier" id="phChoisir">Prendre ou choisir une photo</label><input class="fichier" type="file" id="phFichier" accept="image/*"></div>
+    <p class="note" id="phIntro">Photographiez l'endroit de votre pièce où ira le meuble, ou choisissez une ou plusieurs photos. Elles restent sur votre appareil : rien n'est envoyé ni enregistré.</p>
+    <div><label class="btn" for="phFichier" id="phChoisir">Prendre ou choisir des photos</label><input class="fichier" type="file" id="phFichier" accept="image/*" multiple></div>
+    <div class="ph-photos" id="phPhotos" hidden></div>
     <div class="ph-scene" id="phScene" hidden>
       <img id="phImg" alt="Votre pièce">
       <model-viewer id="phVue" shadow-intensity="1.1" shadow-softness="0.5" environment-image="neutral" exposure="1" field-of-view="25deg" interaction-prompt="none" disable-zoom alt="Le meuble posé sur votre photo"></model-viewer>
@@ -168,7 +172,7 @@ p { margin: 0; }
     <p class="aide" id="phAide" hidden></p>
     <div class="boutons" id="phBoutons" hidden>
       <button class="btn" type="button" id="phEnr">Enregistrer l'image</button>
-      <label class="btn second" for="phFichier">Changer de photo</label>
+      <label class="btn second" for="phFichier">Ajouter des photos</label>
     </div>
   </div>
 </dialog>
@@ -196,7 +200,8 @@ function montrer(i) {
     b.appendChild(im); b.addEventListener("click", () => { const g = document.getElementById("ambGrande"); g.src = src; g.alt = im.alt; document.getElementById("tAmb").textContent = p.nom.split(",")[0] + ", en situation"; document.getElementById("dlgAmb").showModal(); });
     gal.appendChild(b);
   });
-  document.querySelector(".ambiances").hidden = !(p.ambiances ?? []).length;
+  // Photos d'ambiance retirées le 19/11 (décor qui n'est pas celui du client) : la galerie reste masquée.
+  document.querySelector(".ambiances").hidden = true;
 }
 let courant = 0;
 document.querySelectorAll("[data-fermer]").forEach((b) => b.addEventListener("click", () => b.closest("dialog").close()));
@@ -229,15 +234,32 @@ function phOuvrir() {
   if (ph.url) phCadre();
 }
 document.getElementById("avecPhoto").addEventListener("click", phOuvrir);
+// Plusieurs photos possibles : chacune garde son propre placement du meuble.
+ph.photos = []; ph.active = -1;
+function phGarder() {
+  const a = ph.photos[ph.active]; if (!a) return;
+  Object.assign(a, { x: ph.x, y: ph.y, taille: ph.taille.value, rot: ph.rot.value, haut: ph.haut.value });
+}
+function phActiver(i) {
+  phGarder(); ph.active = i; const a = ph.photos[i];
+  ph.x = a.x; ph.y = a.y; ph.taille.value = a.taille; ph.rot.value = a.rot; ph.haut.value = a.haut;
+  ph.url = a.url; ph.img.onload = () => phCadre(); ph.img.src = a.url;
+  [...document.getElementById("phPhotos").children].forEach((b, j) => b.setAttribute("aria-pressed", String(j === i)));
+}
 document.getElementById("phFichier").addEventListener("change", (e) => {
-  const f = e.target.files && e.target.files[0]; if (!f) return;
-  if (ph.url) URL.revokeObjectURL(ph.url);
-  ph.url = URL.createObjectURL(f); ph.img.src = ph.url; ph.x = 50; ph.y = 68;
-  ph.img.onload = () => {
-    ["phScene", "phReglages", "phAide", "phBoutons"].forEach((id) => { document.getElementById(id).hidden = false; });
-    document.getElementById("phChoisir").hidden = true; document.getElementById("phIntro").hidden = true;
-    phCadre();
-  };
+  const fichiers = [...(e.target.files ?? [])]; if (!fichiers.length) return;
+  const liste = document.getElementById("phPhotos"), debut = ph.photos.length;
+  fichiers.forEach((f, k) => {
+    const a = { url: URL.createObjectURL(f), x: 50, y: 68, taille: "45", rot: "-25", haut: "15" };
+    ph.photos.push(a);
+    const b = document.createElement("button"); b.type = "button"; b.setAttribute("aria-label", "Photo " + (debut + k + 1));
+    const im = document.createElement("img"); im.src = a.url; im.alt = ""; b.appendChild(im);
+    b.addEventListener("click", () => phActiver(debut + k)); liste.appendChild(b);
+  });
+  ["phScene", "phReglages", "phAide", "phBoutons"].forEach((id) => { document.getElementById(id).hidden = false; });
+  liste.hidden = ph.photos.length < 2;
+  document.getElementById("phChoisir").hidden = true; document.getElementById("phIntro").hidden = true;
+  phActiver(debut);
   e.target.value = "";
 });
 [ph.taille, ph.rot, ph.haut].forEach((c) => c.addEventListener("input", phPlacer));
@@ -271,7 +293,7 @@ document.getElementById("phEnr").addEventListener("click", async (e) => {
     ph.vue.style.cssText = avant;
     g.drawImage(meuble, (rv.left - rs.left) * k, (rv.top - rs.top) * k, rv.width * k, rv.height * k);
     const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.9));
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "ma-piece-" + PRODUITS[courant].id + ".jpg";
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "ma-piece-" + PRODUITS[courant].id + "-" + (ph.active + 1) + ".jpg";
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   } finally { ph.vue.classList.remove("libre"); bouton.disabled = false; }
 });
