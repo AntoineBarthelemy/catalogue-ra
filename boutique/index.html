@@ -400,7 +400,7 @@ async function phRenduRealiste() {
     document.getElementById("phResultat").hidden = false;
     phEtat("");
   } catch (err) {
-    phEtat("Le rendu réaliste n'a pas pu être créé (" + String(err.message || err).slice(0, 80) + "). Votre placement est intact.");
+    phEtat("Le rendu réaliste n'a pas pu être créé (" + String(err.message || err).slice(0, 240) + "). Votre placement est intact.");
   } finally { bouton.disabled = false; }
 }
 document.getElementById("phIA").addEventListener("click", () => {

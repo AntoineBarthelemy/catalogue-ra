@@ -24,16 +24,25 @@ export default {
     if (req.method !== "POST" || req.headers.get("Origin") !== env.ORIGINE) return new Response("interdit", { status: 403 });
     const { image, masque, taille } = await req.json(); // PNG base64 sans en-tête data:, même taille pour les deux
     if (!image || image.length > 12_000_000) return new Response("image absente ou trop lourde", { status: 400, headers: cors });
-    const f = new FormData();
-    f.append("model", env.MODELE || "gpt-image-1");
-    f.append("prompt", CONSIGNE);
-    f.append("image", new Blob([b64EnOctets(image)], { type: "image/png" }), "piece.png");
-    if (masque) f.append("mask", new Blob([b64EnOctets(masque)], { type: "image/png" }), "masque.png");
-    f.append("size", taille || "auto");
-    f.append("quality", "medium");
-    f.append("input_fidelity", "high");
-    const r = await fetch("https://api.openai.com/v1/images/edits", { method: "POST", headers: { Authorization: "Bearer " + env.CLE_IA }, body: f });
-    if (!r.ok) return new Response("erreur du service d'IA " + r.status, { status: 502, headers: cors });
+    const appel = (fidelite) => {
+      const f = new FormData();
+      f.append("model", env.MODELE || "gpt-image-1");
+      f.append("prompt", CONSIGNE);
+      f.append("image", new Blob([b64EnOctets(image)], { type: "image/png" }), "piece.png");
+      if (masque) f.append("mask", new Blob([b64EnOctets(masque)], { type: "image/png" }), "masque.png");
+      f.append("size", taille || "auto");
+      f.append("quality", "medium");
+      if (fidelite) f.append("input_fidelity", "high");
+      return fetch("https://api.openai.com/v1/images/edits", { method: "POST", headers: { Authorization: "Bearer " + env.CLE_IA }, body: f });
+    };
+    let r = await appel(true);
+    // Si le réglage de fidélité élevée est refusé par le modèle, on réessaie une fois sans lui.
+    if (r.status === 400) { const t = await r.clone().text(); if (/input_fidelity/i.test(t)) r = await appel(false); }
+    if (!r.ok) {
+      // Le message d'OpenAI est renvoyé (sans la clé) pour qu'on sache pourquoi l'appel est refusé.
+      let detail = ""; try { detail = (await r.json()).error?.message ?? ""; } catch { /* pas de JSON */ }
+      return new Response(JSON.stringify({ erreur: r.status, detail: String(detail).slice(0, 300) }), { status: 502, headers: { ...cors, "Content-Type": "application/json" } });
+    }
     const j = await r.json();
     const sortie = j.data?.[0]?.b64_json;
     if (!sortie) return new Response("aucune image rendue", { status: 502, headers: cors });
