@@ -385,7 +385,7 @@ async function phRenduRealiste() {
     gp.globalCompositeOperation = "destination-in"; gp.drawImage(fondu, 0, 0);
     gf.drawImage(morceau, 0, 0);
     const ecart = phEcart(c, fin, zone);
-    ph.dernierEcart = ecart;
+    ph.dernierEcart = ecart; ph.dernierRendu = fin; // gardé pour les essais, même s'il est écarté
     if (ecart > SEUIL_ECART) {
       phEtat("L'IA a trop modifié le meuble (forme ou couleurs) : rendu écarté. Le placement 3D, lui, reste exact. Réessayez, ou enregistrez l'image sans rendu.");
       return;
