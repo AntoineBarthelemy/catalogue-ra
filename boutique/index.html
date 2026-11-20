@@ -88,6 +88,9 @@ label.btn { display: inline-block; }
 .ph-photos button { flex: none; width: 64px; height: 64px; padding: 0; border: 2px solid var(--trait); border-radius: 8px; overflow: hidden; background: var(--scene); cursor: pointer; }
 .ph-photos button[aria-pressed="true"] { border-color: var(--accent); }
 .ph-photos img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rendu { margin: 0; position: relative; }
+.rendu img { width: 100%; max-height: 60dvh; object-fit: contain; display: block; border-radius: 10px; background: var(--scene); }
+.rendu figcaption { position: absolute; left: 8px; bottom: 8px; font: 600 12px var(--f-texte); background: rgba(0,0,0,.62); color: #fff; padding: 4px 8px; border-radius: 6px; }
 .lignes b { display: block; font-size: 17px; margin-bottom: 4px; }
 p { margin: 0; }
 </style>
@@ -130,7 +133,7 @@ p { margin: 0; }
         <button class="btn" type="button" id="avecPhoto">Voir avec ma photo</button>
         <button class="btn second" type="button" id="panier">Ajouter au panier</button>
       </div>
-      <p class="note" id="retour">« Voir chez moi » pose le meuble dans votre pièce avec la caméra du téléphone (iPhone et Android, sans application). « Voir avec ma photo » le place sur une photo de votre pièce, sur téléphone comme sur ordinateur. Dans les deux cas, rien n'est envoyé : tout se passe sur votre appareil.</p>
+      <p class="note" id="retour">« Voir chez moi » pose le meuble dans votre pièce avec la caméra du téléphone (iPhone et Android, sans application). « Voir avec ma photo » le place sur vos photos de la pièce, sur téléphone comme sur ordinateur, avec en option un rendu réaliste par IA. Sans rendu réaliste, rien n'est envoyé : tout se passe sur votre appareil.</p>
     </div>
   </div>
 
@@ -144,7 +147,7 @@ p { margin: 0; }
     </div>
   </section>
 </main>
-<footer><div class="cadre">Modèles 3D de cette démonstration : Poly Haven (polyhaven.com), licence CC0, utilisables librement. Aucune image de votre pièce n'est envoyée ni enregistrée.</div></footer>
+<footer><div class="cadre">Modèles 3D de cette démonstration : Poly Haven (polyhaven.com), licence CC0, utilisables librement. Aucune image de votre pièce n'est enregistrée ; elle n'est envoyée que si vous demandez un rendu réaliste.</div></footer>
 
 <dialog id="dlgAmb" aria-label="Photo d'ambiance">
   <div class="dlg">
@@ -157,7 +160,7 @@ p { margin: 0; }
 <dialog id="dlgPhoto" aria-labelledby="tPhoto">
   <div class="dlg">
     <div class="dlg-tete"><h2 id="tPhoto">Voir avec ma photo</h2><button class="fermer" type="button" data-fermer aria-label="Fermer">×</button></div>
-    <p class="note" id="phIntro">Photographiez l'endroit de votre pièce où ira le meuble, ou choisissez une ou plusieurs photos. Elles restent sur votre appareil : rien n'est envoyé ni enregistré.</p>
+    <p class="note" id="phIntro">Photographiez l'endroit de votre pièce où ira le meuble, ou choisissez une ou plusieurs photos. Elles restent sur votre appareil, sauf si vous demandez un rendu réaliste.</p>
     <div><label class="btn" for="phFichier" id="phChoisir">Prendre ou choisir des photos</label><input class="fichier" type="file" id="phFichier" accept="image/*" multiple></div>
     <div class="ph-photos" id="phPhotos" hidden></div>
     <div class="ph-scene" id="phScene" hidden>
@@ -170,9 +173,19 @@ p { margin: 0; }
       <label>Hauteur de vue <input type="range" id="phVueH" min="0" max="45" value="15"></label>
     </div>
     <p class="aide" id="phAide" hidden></p>
+    <p class="note" id="phAvis" hidden>Rendu réaliste : votre photo, avec le meuble posé, est envoyée à notre service d'IA (OpenAI) qui fond la lumière et les ombres du meuble dans votre pièce. Nous ne gardons aucune photo ; OpenAI peut la garder jusqu'à 30 jours pour lutter contre les abus. L'image obtenue porte la mention « Image modifiée par IA ».</p>
+    <p class="note" id="phEtat" role="status" hidden></p>
     <div class="boutons" id="phBoutons" hidden>
-      <button class="btn" type="button" id="phEnr">Enregistrer l'image</button>
+      <button class="btn" type="button" id="phIA">Rendu réaliste</button>
+      <button class="btn second" type="button" id="phEnr">Enregistrer l'image</button>
       <label class="btn second" for="phFichier">Ajouter des photos</label>
+    </div>
+    <div id="phResultat" hidden>
+      <figure class="rendu"><img id="phRendu" alt="Votre pièce avec le meuble, rendu réaliste"><figcaption>Image modifiée par IA</figcaption></figure>
+      <div class="boutons">
+        <button class="btn" type="button" id="phEnrRendu">Enregistrer le rendu</button>
+        <button class="btn second" type="button" id="phRetour">Revenir au placement</button>
+      </div>
     </div>
   </div>
 </dialog>
@@ -274,16 +287,16 @@ ph.vue.addEventListener("pointermove", (e) => {
 });
 const phLacher = () => { glisse = null; ph.vue.style.cursor = "grab"; };
 ph.vue.addEventListener("pointerup", phLacher); ph.vue.addEventListener("pointercancel", phLacher);
-document.getElementById("phEnr").addEventListener("click", async (e) => {
-  const bouton = e.currentTarget; bouton.disabled = true;
+// Compose la photo et le meuble 3D posé dessus. Rend aussi le cadre du meuble dans l'image (pour le masque de l'IA).
+async function phComposer(Wmax) {
+  // Taille de l'image : la finesse de l'écran (pas plus), pour que le meuble ne soit pas agrandi et flou.
+  const W = Math.min(ph.img.naturalWidth, Wmax ?? Math.max(1080, Math.round(ph.scene.clientWidth * (window.devicePixelRatio || 1)))), k = W / ph.scene.clientWidth, H = Math.round(ph.scene.clientHeight * k);
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const g = c.getContext("2d"); g.drawImage(ph.img, 0, 0, W, H);
+  ph.vue.classList.add("libre");
   try {
-    // Taille de l'image : la finesse de l'écran (pas plus), pour que le meuble ne soit pas agrandi et flou.
-    const W = Math.min(ph.img.naturalWidth, Math.max(1080, Math.round(ph.scene.clientWidth * (window.devicePixelRatio || 1)))), k = W / ph.scene.clientWidth, H = Math.round(ph.scene.clientHeight * k);
-    const c = document.createElement("canvas"); c.width = W; c.height = H;
-    const g = c.getContext("2d"); g.drawImage(ph.img, 0, 0, W, H);
-    ph.vue.classList.add("libre");
     const rs = ph.scene.getBoundingClientRect(), rv = ph.vue.getBoundingClientRect();
-    // Le temps de la capture, le meuble est rendu en plus grand puis réduit à l'écran : il reste net dans l'image enregistrée.
+    // Le temps de la capture, le meuble est rendu en plus grand puis réduit à l'écran : il reste net dans l'image.
     const f = Math.min(4, Math.max(1, k / (window.devicePixelRatio || 1))), avant = ph.vue.style.cssText;
     if (f > 1.05) {
       Object.assign(ph.vue.style, { width: rv.width * f + "px", left: rv.left - rs.left + "px", top: rv.top - rs.top + "px", transform: "scale(" + 1 / f + ")", transformOrigin: "0 0" });
@@ -291,12 +304,116 @@ document.getElementById("phEnr").addEventListener("click", async (e) => {
     }
     const meuble = await createImageBitmap(await ph.vue.toBlob({ mimeType: "image/png" }));
     ph.vue.style.cssText = avant;
-    g.drawImage(meuble, (rv.left - rs.left) * k, (rv.top - rs.top) * k, rv.width * k, rv.height * k);
-    const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.9));
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "ma-piece-" + PRODUITS[courant].id + "-" + (ph.active + 1) + ".jpg";
-    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-  } finally { ph.vue.classList.remove("libre"); bouton.disabled = false; }
+    const cadre = { x: (rv.left - rs.left) * k, y: (rv.top - rs.top) * k, w: rv.width * k, h: rv.height * k };
+    g.drawImage(meuble, cadre.x, cadre.y, cadre.w, cadre.h);
+    // Zone réellement occupée par le meuble (pixels non transparents du rendu 3D), pour un masque serré.
+    const t = document.createElement("canvas"); t.width = meuble.width; t.height = meuble.height;
+    const tg = t.getContext("2d"); tg.drawImage(meuble, 0, 0);
+    const d = tg.getImageData(0, 0, t.width, t.height).data; let x0 = t.width, y0 = t.height, x1 = 0, y1 = 0;
+    for (let y = 0; y < t.height; y += 2) for (let x = 0; x < t.width; x += 2) if (d[(y * t.width + x) * 4 + 3] > 40) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    const sx = cadre.w / t.width, sy = cadre.h / t.height;
+    const zone = x1 > x0 ? { x: cadre.x + x0 * sx, y: cadre.y + y0 * sy, w: (x1 - x0) * sx, h: (y1 - y0) * sy } : cadre;
+    return { c, zone };
+  } finally { ph.vue.classList.remove("libre"); }
+}
+function phTelecharger(canvas, suffixe) {
+  return new Promise((r) => canvas.toBlob((blob) => {
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "ma-piece-" + PRODUITS[courant].id + "-" + (ph.active + 1) + suffixe + ".jpg";
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); r();
+  }, "image/jpeg", 0.9));
+}
+document.getElementById("phEnr").addEventListener("click", async (e) => {
+  const bouton = e.currentTarget; bouton.disabled = true;
+  try { const { c } = await phComposer(); await phTelecharger(c, ""); } finally { bouton.disabled = false; }
 });
+
+// « Rendu réaliste » (décision d'Antoine du 19/11 : méthode hybride, OpenAI) : notre meuble est posé d'abord, aux vraies
+// cotes ; l'IA ne retouche que la zone du meuble et de son ombre (masque) pour fondre lumière, ombres et reflets ;
+// le résultat est recollé sur la photo d'origine, donc le reste de la photo ne bouge pas et n'est jamais étiré.
+const SERVEUR_IA = "https://catalogue-ra-photo.antoinebarthelemy60.workers.dev";
+ph.rendu = null;
+function phEtat(texte) { const p = document.getElementById("phEtat"); p.textContent = texte; p.hidden = !texte; }
+function phZoneMasque(zone, W, H) {
+  // Le meuble, plus une marge pour son ombre (surtout en dessous) et les reflets autour.
+  const mx = zone.w * 0.18, haut = zone.h * 0.08, bas = zone.h * 0.30;
+  const x = Math.max(0, zone.x - mx), y = Math.max(0, zone.y - haut);
+  return { x, y, w: Math.min(W, zone.x + zone.w + mx) - x, h: Math.min(H, zone.y + zone.h + bas) - y };
+}
+function phEcart(a, b, zone) {
+  // Contrôle de fidélité : forme et couleurs du meuble comparées avant et après l'IA, après avoir retiré
+  // l'écart moyen de luminosité (l'IA a le droit de changer l'éclairage, pas le meuble).
+  const n = 48, ca = document.createElement("canvas"), cb = document.createElement("canvas"); ca.width = cb.width = n; ca.height = cb.height = n;
+  ca.getContext("2d").drawImage(a, zone.x, zone.y, zone.w, zone.h, 0, 0, n, n);
+  cb.getContext("2d").drawImage(b, zone.x, zone.y, zone.w, zone.h, 0, 0, n, n);
+  const da = ca.getContext("2d").getImageData(0, 0, n, n).data, db = cb.getContext("2d").getImageData(0, 0, n, n).data;
+  const m = [0, 0, 0, 0, 0, 0];
+  for (let i = 0; i < da.length; i += 4) for (let k = 0; k < 3; k++) { m[k] += da[i + k]; m[3 + k] += db[i + k]; }
+  const px = da.length / 4; for (let k = 0; k < 6; k++) m[k] /= px;
+  let s = 0;
+  for (let i = 0; i < da.length; i += 4) for (let k = 0; k < 3; k++) s += Math.abs((da[i + k] - m[k]) - (db[i + k] - m[3 + k]));
+  return s / (px * 3);
+}
+const SEUIL_ECART = 22;
+async function phRenduRealiste() {
+  const bouton = document.getElementById("phIA"); bouton.disabled = true;
+  try {
+    phEtat("Création du rendu réaliste, environ 30 secondes…");
+    const { c, zone } = await phComposer(2048);
+    const W = c.width, H = c.height, r = W / H;
+    // Format accepté par l'IA, le plus proche de la photo ; la photo y est placée sans déformation (bandes autour si besoin).
+    const [TW, TH] = r > 1.2 ? [1536, 1024] : r < 0.83 ? [1024, 1536] : [1024, 1024];
+    const s = Math.min(TW / W, TH / H), dx = (TW - W * s) / 2, dy = (TH - H * s) / 2;
+    const img = document.createElement("canvas"); img.width = TW; img.height = TH;
+    const gi = img.getContext("2d"); gi.fillStyle = "#808080"; gi.fillRect(0, 0, TW, TH); gi.drawImage(c, dx, dy, W * s, H * s);
+    const zm = phZoneMasque(zone, W, H);
+    const msq = document.createElement("canvas"); msq.width = TW; msq.height = TH;
+    const gm = msq.getContext("2d"); gm.fillStyle = "#000"; gm.fillRect(0, 0, TW, TH);
+    gm.clearRect(dx + zm.x * s, dy + zm.y * s, zm.w * s, zm.h * s); // transparent = seule zone que l'IA peut retoucher
+    const b64 = (cv) => cv.toDataURL("image/png").split(",")[1];
+    const rep = await fetch(SERVEUR_IA, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image: b64(img), masque: ph.sansMasque ? undefined : b64(msq), taille: TW + "x" + TH }) });
+    if (!rep.ok) throw new Error(await rep.text());
+    const sortie = await createImageBitmap(await (await fetch("data:image/png;base64," + (await rep.json()).image)).blob());
+    // Recollage : seule la zone du masque vient de l'IA, avec un bord adouci ; tout le reste est la photo d'origine.
+    const fin = document.createElement("canvas"); fin.width = W; fin.height = H;
+    const gf = fin.getContext("2d"); gf.drawImage(c, 0, 0);
+    const morceau = document.createElement("canvas"); morceau.width = W; morceau.height = H;
+    const gp = morceau.getContext("2d"); gp.drawImage(sortie, dx, dy, W * s, H * s, 0, 0, W, H);
+    const bord = Math.max(6, Math.round(Math.min(zm.w, zm.h) * 0.06));
+    const fondu = document.createElement("canvas"); fondu.width = W; fondu.height = H;
+    const gfd = fondu.getContext("2d"); gfd.filter = "blur(" + bord + "px)"; gfd.fillStyle = "#fff"; gfd.fillRect(zm.x + bord, zm.y + bord, zm.w - 2 * bord, zm.h - 2 * bord);
+    gp.globalCompositeOperation = "destination-in"; gp.drawImage(fondu, 0, 0);
+    gf.drawImage(morceau, 0, 0);
+    const ecart = phEcart(c, fin, zone);
+    ph.dernierEcart = ecart;
+    if (ecart > SEUIL_ECART) {
+      phEtat("L'IA a trop modifié le meuble (forme ou couleurs) : rendu écarté. Le placement 3D, lui, reste exact. Réessayez, ou enregistrez l'image sans rendu.");
+      return;
+    }
+    // Mention obligatoire (règlement européen sur l'IA, article 50), inscrite dans l'image enregistrée elle-même.
+    const fs = Math.max(14, Math.round(W / 60)); gf.font = "600 " + fs + "px Inter, system-ui, sans-serif";
+    const txt = "Image modifiée par IA", lw = gf.measureText(txt).width;
+    gf.fillStyle = "rgba(0,0,0,.62)"; gf.fillRect(fs * 0.6, H - fs * 2.2, lw + fs, fs * 1.6);
+    gf.fillStyle = "#fff"; gf.fillText(txt, fs * 1.1, H - fs * 0.95);
+    ph.rendu = fin;
+    const vueRendu = document.getElementById("phRendu"); vueRendu.src = fin.toDataURL("image/jpeg", 0.9);
+    ["phScene", "phReglages", "phAide", "phPhotos"].forEach((id) => { document.getElementById(id).hidden = true; });
+    document.getElementById("phResultat").hidden = false;
+    phEtat("");
+  } catch (err) {
+    phEtat("Le rendu réaliste n'a pas pu être créé (" + String(err.message || err).slice(0, 80) + "). Votre placement est intact.");
+  } finally { bouton.disabled = false; }
+}
+document.getElementById("phIA").addEventListener("click", () => {
+  const avis = document.getElementById("phAvis");
+  if (avis.hidden) { avis.hidden = false; document.getElementById("phIA").textContent = "Envoyer et créer le rendu"; return; }
+  phRenduRealiste();
+});
+document.getElementById("phRetour").addEventListener("click", () => {
+  document.getElementById("phResultat").hidden = true;
+  ["phScene", "phReglages", "phAide"].forEach((id) => { document.getElementById(id).hidden = false; });
+  document.getElementById("phPhotos").hidden = ph.photos.length < 2; phCadre();
+});
+document.getElementById("phEnrRendu").addEventListener("click", () => { if (ph.rendu) phTelecharger(ph.rendu, "-rendu"); });
 PRODUITS.forEach((p, i) => {
   const b = document.createElement("button"); b.type = "button"; b.className = "vign";
   const t = document.createElement("b"); t.textContent = p.nom.split(",")[0];
