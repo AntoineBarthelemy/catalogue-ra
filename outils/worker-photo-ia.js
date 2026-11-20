@@ -4,7 +4,7 @@
 // et un masque PNG : transparent = zone que l'IA peut retoucher (le meuble et son ombre), opaque = reste de la photo, intact.
 // L'IA ne fait que fondre le meuble dans la photo : lumière, ombres, reflets. Rien n'est gardé ici.
 // À coller tel quel par Antoine dans Cloudflare (Workers, « Edit code »). Secret à créer par lui : CLE_IA (clé OpenAI du
-// projet OpenAI dédié « catalogue-ra »). Variables : ORIGINE = https://antoinebarthelemy.dev ; MODELE = gpt-image-1
+// projet OpenAI dédié « catalogue-ra »). Variables : ORIGINE = https://antoinebarthelemy.dev ; MODELE = gpt-image-2.6-sunburst
 // (ou plus récent : le chef relit la doc OpenAI au branchement).
 
 const CONSIGNE = [
@@ -26,7 +26,7 @@ export default {
     if (!image || image.length > 12_000_000) return new Response("image absente ou trop lourde", { status: 400, headers: cors });
     const appel = (fidelite) => {
       const f = new FormData();
-      f.append("model", env.MODELE || "gpt-image-1");
+      f.append("model", env.MODELE || "gpt-image-2.6-sunburst"); // gpt-image-1 retiré par OpenAI le 23/10/2026
       f.append("prompt", CONSIGNE);
       f.append("image", new Blob([b64EnOctets(image)], { type: "image/png" }), "piece.png");
       if (masque) f.append("mask", new Blob([b64EnOctets(masque)], { type: "image/png" }), "masque.png");
