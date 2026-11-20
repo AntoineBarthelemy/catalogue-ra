@@ -350,11 +350,16 @@ function phEcart(a, b, zone) {
   const m = [0, 0, 0, 0, 0, 0];
   for (let i = 0; i < da.length; i += 4) for (let k = 0; k < 3; k++) { m[k] += da[i + k]; m[3 + k] += db[i + k]; }
   const px = da.length / 4; for (let k = 0; k < 6; k++) m[k] /= px;
+  // Écart type par couleur : on compare des valeurs centrées et réduites, insensibles au contraste de l'éclairage.
+  const e = [0, 0, 0, 0, 0, 0];
+  for (let i = 0; i < da.length; i += 4) for (let k = 0; k < 3; k++) { e[k] += (da[i + k] - m[k]) ** 2; e[3 + k] += (db[i + k] - m[3 + k]) ** 2; }
+  for (let k = 0; k < 6; k++) e[k] = Math.sqrt(e[k] / px) || 1;
   let s = 0;
-  for (let i = 0; i < da.length; i += 4) for (let k = 0; k < 3; k++) s += Math.abs((da[i + k] - m[k]) - (db[i + k] - m[3 + k]));
+  for (let i = 0; i < da.length; i += 4) for (let k = 0; k < 3; k++) s += Math.abs((da[i + k] - m[k]) / e[k] - (db[i + k] - m[3 + k]) / e[3 + k]);
   return s / (px * 3);
 }
-const SEUIL_ECART = 22;
+// Réglé sur les essais du 20/11 : rendus fidèles de 0,29 à 0,58 ; meuble déplacé ou changé de 0,70 à 1,22.
+const SEUIL_ECART = 0.65;
 async function phRenduRealiste() {
   const bouton = document.getElementById("phIA"); bouton.disabled = true;
   try {
@@ -367,29 +372,35 @@ async function phRenduRealiste() {
     const img = document.createElement("canvas"); img.width = TW; img.height = TH;
     const gi = img.getContext("2d"); gi.fillStyle = "#808080"; gi.fillRect(0, 0, TW, TH); gi.drawImage(c, dx, dy, W * s, H * s);
     const zm = phZoneMasque(zone, W, H);
-    const msq = document.createElement("canvas"); msq.width = TW; msq.height = TH;
-    const gm = msq.getContext("2d"); gm.fillStyle = "#000"; gm.fillRect(0, 0, TW, TH);
-    gm.clearRect(dx + zm.x * s, dy + zm.y * s, zm.w * s, zm.h * s); // transparent = seule zone que l'IA peut retoucher
-    const b64 = (cv) => cv.toDataURL("image/png").split(",")[1];
-    const rep = await fetch(SERVEUR_IA, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image: b64(img), masque: ph.sansMasque ? undefined : b64(msq), taille: TW + "x" + TH }) });
-    if (!rep.ok) throw new Error(await rep.text());
-    const sortie = await createImageBitmap(await (await fetch("data:image/png;base64," + (await rep.json()).image)).blob());
-    // Recollage : seule la zone du masque vient de l'IA, avec un bord adouci ; tout le reste est la photo d'origine.
-    const fin = document.createElement("canvas"); fin.width = W; fin.height = H;
-    const gf = fin.getContext("2d"); gf.drawImage(c, 0, 0);
-    const morceau = document.createElement("canvas"); morceau.width = W; morceau.height = H;
-    const gp = morceau.getContext("2d"); gp.drawImage(sortie, dx, dy, W * s, H * s, 0, 0, W, H);
-    const bord = Math.max(6, Math.round(Math.min(zm.w, zm.h) * 0.06));
-    const fondu = document.createElement("canvas"); fondu.width = W; fondu.height = H;
-    const gfd = fondu.getContext("2d"); gfd.filter = "blur(" + bord + "px)"; gfd.fillStyle = "#fff"; gfd.fillRect(zm.x + bord, zm.y + bord, zm.w - 2 * bord, zm.h - 2 * bord);
-    gp.globalCompositeOperation = "destination-in"; gp.drawImage(fondu, 0, 0);
-    gf.drawImage(morceau, 0, 0);
-    const ecart = phEcart(c, fin, zone);
-    ph.dernierEcart = ecart; ph.dernierRendu = fin; // gardé pour les essais, même s'il est écarté
-    if (ecart > SEUIL_ECART) {
-      phEtat("L'IA a trop modifié le meuble (forme ou couleurs) : rendu écarté. Le placement 3D, lui, reste exact. Réessayez, ou enregistrez l'image sans rendu.");
+    // Envoi en fichier, sans masque (essais du 20/11 : avec masque, l'IA repeint la zone au lieu de garder le meuble).
+    const fichier = await new Promise((r) => img.toBlob(r, "image/png"));
+    const envoi = new FormData(); envoi.append("image", fichier, "piece.png"); envoi.append("taille", TW + "x" + TH);
+    let fin = null, ecart = null;
+    for (let essai = 1; essai <= 2 && !fin; essai++) {
+      if (essai === 2) phEtat("Premier rendu écarté (meuble modifié par l'IA), deuxième essai…");
+      const rep = await fetch(SERVEUR_IA, { method: "POST", body: envoi });
+      const json = await rep.json().catch(() => ({}));
+      if (!rep.ok || !json.data?.[0]?.b64_json) throw new Error(json.error?.message || ("réponse " + rep.status));
+      const sortie = await createImageBitmap(await (await fetch("data:image/jpeg;base64," + json.data[0].b64_json)).blob());
+      // Recollage : seule la zone du meuble et de son ombre vient de l'IA, avec un bord adouci ; tout le reste est la photo d'origine.
+      const essaiFin = document.createElement("canvas"); essaiFin.width = W; essaiFin.height = H;
+      essaiFin.getContext("2d").drawImage(c, 0, 0);
+      const morceau = document.createElement("canvas"); morceau.width = W; morceau.height = H;
+      const gp = morceau.getContext("2d"); gp.drawImage(sortie, dx, dy, W * s, H * s, 0, 0, W, H);
+      const bord = Math.max(6, Math.round(Math.min(zm.w, zm.h) * 0.06));
+      const fondu = document.createElement("canvas"); fondu.width = W; fondu.height = H;
+      const gfd = fondu.getContext("2d"); gfd.filter = "blur(" + bord + "px)"; gfd.fillStyle = "#fff"; gfd.fillRect(zm.x + bord, zm.y + bord, zm.w - 2 * bord, zm.h - 2 * bord);
+      gp.globalCompositeOperation = "destination-in"; gp.drawImage(fondu, 0, 0);
+      essaiFin.getContext("2d").drawImage(morceau, 0, 0);
+      ecart = phEcart(c, essaiFin, zone);
+      ph.dernierEcart = ecart; ph.dernierRendu = essaiFin; ph.essais = essai; // gardés pour les essais, même si écarté
+      if (ecart <= SEUIL_ECART) fin = essaiFin;
+    }
+    if (!fin) {
+      phEtat("L'IA a modifié le meuble (forme ou couleurs) deux fois de suite : rendu écarté. Le placement 3D, lui, reste exact. Réessayez, ou enregistrez l'image sans rendu.");
       return;
     }
+    const gf = fin.getContext("2d");
     // Mention obligatoire (règlement européen sur l'IA, article 50), inscrite dans l'image enregistrée elle-même.
     const fs = Math.max(14, Math.round(W / 60)); gf.font = "600 " + fs + "px Inter, system-ui, sans-serif";
     const txt = "Image modifiée par IA", lw = gf.measureText(txt).width;
