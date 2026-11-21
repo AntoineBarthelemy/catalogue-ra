@@ -358,6 +358,19 @@ function phEcart(a, b, zone) {
   for (let i = 0; i < da.length; i += 4) for (let k = 0; k < 3; k++) s += Math.abs((da[i + k] - m[k]) / e[k] - (db[i + k] - m[3 + k]) / e[3 + k]);
   return s / (px * 3);
 }
+// Contrôle de FORME (21/11, après les essais : une table basse déplacée ou tournée par l'IA passait le contrôle
+// des couleurs) : corrélation des contours du meuble avant et après l'IA, insensible à la lumière.
+function phForme(a, b, zone) {
+  const n = 64;
+  const gris = (img) => { const c = document.createElement("canvas"); c.width = c.height = n; const g = c.getContext("2d"); g.drawImage(img, zone.x, zone.y, zone.w, zone.h, 0, 0, n, n); const d = g.getImageData(0, 0, n, n).data, v = new Float64Array(n * n); for (let i = 0; i < n * n; i++) v[i] = 0.3 * d[i * 4] + 0.59 * d[i * 4 + 1] + 0.11 * d[i * 4 + 2]; return v; };
+  const contours = (g) => { const e = new Float64Array(n * n); for (let j = 1; j < n - 1; j++) for (let i = 1; i < n - 1; i++) { const p = (x, y) => g[(j + y) * n + i + x]; e[j * n + i] = Math.hypot(p(1, -1) + 2 * p(1, 0) + p(1, 1) - p(-1, -1) - 2 * p(-1, 0) - p(-1, 1), p(-1, 1) + 2 * p(0, 1) + p(1, 1) - p(-1, -1) - 2 * p(0, -1) - p(1, -1)); } return e; };
+  const ea = contours(gris(a)), eb = contours(gris(b));
+  let ma = 0, mb = 0; for (let i = 0; i < ea.length; i++) { ma += ea[i]; mb += eb[i]; } ma /= ea.length; mb /= eb.length;
+  let s = 0, sa = 0, sb = 0; for (let i = 0; i < ea.length; i++) { s += (ea[i] - ma) * (eb[i] - mb); sa += (ea[i] - ma) ** 2; sb += (eb[i] - mb) ** 2; }
+  return s / (Math.sqrt(sa * sb) || 1);
+}
+// Réglé hors ligne sur les essais des 20 et 21/11 : rendus fidèles 0,60 à 0,75 ; table déplacée ou redessinée 0,04 à 0,57.
+const SEUIL_FORME = 0.58;
 // Réglé sur les essais du 20/11 : rendus fidèles de 0,29 à 0,58 ; meuble déplacé ou changé de 0,70 à 1,22.
 const SEUIL_ECART = 0.65;
 async function phRenduRealiste() {
@@ -392,9 +405,9 @@ async function phRenduRealiste() {
       const gfd = fondu.getContext("2d"); gfd.filter = "blur(" + bord + "px)"; gfd.fillStyle = "#fff"; gfd.fillRect(zm.x + bord, zm.y + bord, zm.w - 2 * bord, zm.h - 2 * bord);
       gp.globalCompositeOperation = "destination-in"; gp.drawImage(fondu, 0, 0);
       essaiFin.getContext("2d").drawImage(morceau, 0, 0);
-      ecart = phEcart(c, essaiFin, zone);
-      ph.dernierEcart = ecart; ph.dernierRendu = essaiFin; ph.essais = essai; // gardés pour les essais, même si écarté
-      if (ecart <= SEUIL_ECART) fin = essaiFin;
+      ecart = phEcart(c, essaiFin, zone); const forme = phForme(c, essaiFin, zone);
+      ph.dernierEcart = ecart; ph.derniereForme = forme; ph.dernierRendu = essaiFin; ph.essais = essai; // gardés pour les essais, même si écarté
+      if (ecart <= SEUIL_ECART && forme >= SEUIL_FORME) fin = essaiFin;
     }
     if (!fin) {
       phEtat("L'IA a modifié le meuble (forme ou couleurs) deux fois de suite : rendu écarté. Le placement 3D, lui, reste exact. Réessayez, ou enregistrez l'image sans rendu.");
