@@ -62,11 +62,6 @@ section.offre { border-top: 1px solid var(--trait); padding-block: 28px 48px; }
 h2 { font: 600 22px var(--f-titre); margin: 0 0 14px; }
 .lignes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px; }
 .lignes div { background: var(--surface); border: 1px solid var(--trait); border-radius: 12px; padding: 14px 16px; }
-/* Photos d'ambiance : rendus 3D du modèle dans de vraies pièces photographiées. */
-.ambiances h3 { font: 600 15px var(--f-texte); margin: 18px 0 8px; }
-.galerie { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.galerie button { padding: 0; border: 1px solid var(--trait); border-radius: 10px; overflow: hidden; background: var(--scene); cursor: zoom-in; aspect-ratio: 3 / 2; }
-.galerie img { width: 100%; height: 100%; object-fit: cover; display: block; }
 dialog { border: 0; border-radius: 16px; padding: 0; background: var(--surface); color: var(--texte); width: min(980px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); }
 dialog::backdrop { background: rgba(10, 9, 8, .72); }
 .dlg { padding: 16px; display: grid; gap: 12px; }
@@ -74,31 +69,38 @@ dialog::backdrop { background: rgba(10, 9, 8, .72); }
 .dlg-tete h2 { margin: 0; }
 .fermer { font: 600 22px var(--f-texte); background: transparent; color: var(--texte); border: 1px solid var(--trait); border-radius: 999px; width: 40px; height: 40px; cursor: pointer; flex: none; }
 .grande { width: 100%; border-radius: 10px; display: block; }
-.ph-scene { position: relative; margin: 0 auto; border-radius: 10px; overflow: hidden; background: var(--scene); touch-action: none; user-select: none; }
-.ph-scene img { width: 100%; height: 100%; display: block; pointer-events: none; }
-.ph-scene model-viewer { position: absolute; height: auto; background: transparent; cursor: grab; touch-action: none; outline: 1px dashed rgba(255,255,255,.55); outline-offset: -1px; }
-.ph-scene model-viewer.libre { outline-color: transparent; }
-.reglages { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 8px 16px; }
-.reglages label { display: grid; gap: 2px; font-size: 13px; color: var(--doux); }
-.reglages input { width: 100%; accent-color: var(--accent); }
 .fichier { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 label.btn { display: inline-block; }
 [hidden] { display: none !important; }
-.ph-photos { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
-.ph-photos button { flex: none; width: 64px; height: 64px; padding: 0; border: 2px solid var(--trait); border-radius: 8px; overflow: hidden; background: var(--scene); cursor: pointer; }
-.ph-photos button[aria-pressed="true"] { border-color: var(--accent); }
-.ph-photos img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .rendu { margin: 0; position: relative; }
 .rendu img { width: 100%; max-height: 60dvh; object-fit: contain; display: block; border-radius: 10px; background: var(--scene); }
 .rendu figcaption { position: absolute; left: 8px; bottom: 8px; font: 600 12px var(--f-texte); background: rgba(0,0,0,.62); color: #fff; padding: 4px 8px; border-radius: 6px; }
 .lignes b { display: block; font-size: 17px; margin-bottom: 4px; }
 p { margin: 0; }
+/* « Voir avec ma photo (IA) » : les photos du client avec le produit, en pile (un seul cadre) qui s'étale au clic. */
+.ia-panneau { display: grid; gap: 10px; background: var(--surface); border: 1px solid var(--trait); border-radius: 12px; padding: 12px 14px; }
+.pile { position: relative; width: min(100%, 300px); aspect-ratio: 4 / 3; padding: 0; border: 0; background: transparent; cursor: pointer; justify-self: start; }
+.pile .carte { position: absolute; inset: 0; border-radius: 10px; overflow: hidden; background: var(--scene); border: 3px solid var(--surface); box-shadow: 0 2px 10px rgba(0,0,0,.18); transition: transform .35s ease; }
+.pile .carte img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pile .carte:nth-child(1) { transform: rotate(-5deg) translate(-6px, 4px); }
+.pile .carte:nth-child(2) { transform: rotate(4deg) translate(6px, 2px); }
+.pile .carte:nth-child(3) { transform: rotate(-2deg) translate(-2px, -2px); }
+.pile .carte:last-child { transform: none; }
+.pile .vide { display: grid; place-items: center; text-align: center; padding: 12px; font-size: 13px; color: var(--doux); border: 2px dashed var(--trait); background: var(--surface); }
+.pile .compte { position: absolute; right: 8px; top: 8px; font: 600 12px var(--f-texte); background: rgba(0,0,0,.62); color: #fff; padding: 3px 8px; border-radius: 999px; }
+.pile:hover .carte:nth-child(1) { transform: rotate(-8deg) translate(-12px, 6px); }
+.pile:hover .carte:nth-child(2) { transform: rotate(7deg) translate(12px, 2px); }
+.pile:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; border-radius: 10px; }
+.etalees { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 12px; }
+.etalees figure { margin: 0; display: grid; gap: 6px; }
+.etalees .rendu img { max-height: none; }
+@media (prefers-reduced-motion: reduce) { .pile .carte { transition: none; } }
 </style>
 </head>
 <body>
 
-<div class="bandeau"><div class="cadre">Démonstration : la boutique « Atelier Exemple », ses noms et ses prix sont fictifs. Les meubles 3D viennent de la bibliothèque libre Poly Haven (licence CC0). Pour votre boutique, chaque modèle est fait d'après vos photos et vos cotes.</div></div>
-<header class="boutique"><div class="cadre"><span class="logo">Atelier Exemple</span><nav class="menu" aria-label="Rayons (exemple)"><span>Salon</span><span>Rangement</span><span>Salle à manger</span><span>Nouveautés</span></nav></div></header>
+<div class="bandeau"><div class="cadre">Démonstration : la boutique « Atelier Exemple », ses noms et ses prix sont fictifs. Les produits 3D viennent de la bibliothèque libre Poly Haven (licence CC0). Pour votre boutique, chaque modèle est fait d'après vos photos et vos cotes.</div></div>
+<header class="boutique"><div class="cadre"><span class="logo">Atelier Exemple</span><nav class="menu" aria-label="Rayons (exemple)"><span>Salon</span><span>Rangement</span><span>Déco</span><span>Luminaires</span></nav></div></header>
 
 <main class="cadre">
   <p class="fil" id="fil">Accueil / Salon</p>
@@ -106,18 +108,13 @@ p { margin: 0; }
     <div>
       <div class="scene">
         <model-viewer id="vue" camera-controls touch-action="pan-y" shadow-intensity="1" shadow-softness="0.6" environment-image="neutral" exposure="1"
-          ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor" camera-orbit="-30deg 75deg auto" interaction-prompt="none" alt="Vue 3D du meuble">
+          ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor" camera-orbit="-30deg 75deg auto" interaction-prompt="none" alt="Vue 3D du produit">
           <div class="charge" id="charge" slot="progress-bar"></div>
-          <button slot="ar-button" class="btn voir" id="voir">Voir chez moi</button>
+          <span slot="ar-button" hidden></span>
         </model-viewer>
       </div>
-      <p class="aide" id="aide">Tournez le meuble avec le doigt ou la souris. Sur téléphone, « Voir chez moi » le pose dans votre pièce, à sa vraie taille.</p>
+      <p class="aide" id="aide">Tournez le produit avec le doigt ou la souris.</p>
       <div class="vignettes" id="vignettes"></div>
-      <div class="ambiances">
-        <h3>En situation</h3>
-        <div class="galerie" id="galerie"></div>
-        <p class="aide">Rendus 3D de notre modèle du meuble, posé dans de vraies pièces photographiées (photos à 360° Poly Haven, licence CC0).</p>
-      </div>
     </div>
     <div class="achat">
       <h1 id="nom"></h1>
@@ -130,10 +127,20 @@ p { margin: 0; }
         <div><span>Hauteur</span><b id="h"></b></div>
       </div>
       <div class="boutons">
-        <button class="btn" type="button" id="avecPhoto">Voir avec ma photo</button>
+        <button class="btn" type="button" id="voir">Voir chez moi</button>
+        <button class="btn" type="button" id="avecPhoto">Voir avec ma photo (IA)</button>
         <button class="btn second" type="button" id="panier">Ajouter au panier</button>
       </div>
-      <p class="note" id="retour">« Voir chez moi » pose le meuble dans votre pièce avec la caméra du téléphone (iPhone et Android, sans application). « Voir avec ma photo » le place sur vos photos de la pièce, sur téléphone comme sur ordinateur, avec en option un rendu réaliste par IA. Sans rendu réaliste, rien n'est envoyé : tout se passe sur votre appareil.</p>
+      <p class="note" id="arAbsent" role="status" hidden>« Voir chez moi » s'ouvre sur un téléphone (iPhone ou Android, sans application). Ici, utilisez « Voir avec ma photo (IA) ».</p>
+      <p class="note" id="retour">Le bouton « Voir chez moi » pose le produit dans votre pièce avec la caméra du téléphone, à sa vraie taille. Avec « Voir avec ma photo (IA) », prenez une ou plusieurs photos de l'endroit voulu : l'IA y met le produit, à l'échelle, sans rien à placer. Si l'un ne marche pas chez vous, l'autre prend le relais.</p>
+      <div class="ia-panneau" id="iaAvis" hidden>
+        <p class="note">Vos photos et des vues du produit sont envoyées à notre service d'IA (OpenAI), qui met le produit dans vos photos. Nous ne gardons aucune photo ; OpenAI peut la garder jusqu'à 30 jours pour lutter contre les abus. Chaque image obtenue porte la mention « Image modifiée par IA ». Jusqu'à 4 photos, environ 30 secondes chacune.</p>
+        <div><label class="btn" for="iaFichier">Prendre ou choisir des photos</label><input class="fichier" type="file" id="iaFichier" accept="image/*" multiple></div>
+      </div>
+      <p class="note" id="iaEtat" role="status" hidden></p>
+      <button type="button" class="pile" id="pile" aria-label="Vos photos avec le produit : afficher toutes les photos">
+        <span class="carte vide">Vos photos avec le produit apparaîtront ici</span>
+      </button>
     </div>
   </div>
 
@@ -141,60 +148,28 @@ p { margin: 0; }
     <h2 id="t-offre">Ces boutons sur vos fiches produit</h2>
     <div class="lignes">
       <div><b>30 € par modèle</b><p>Fait d'après vos photos et vos cotes, au centimètre. Vous le validez avant la mise en ligne.</p></div>
-      <div><b>19 € par mois</b><p>Hébergement, boutons « Voir chez moi » et « Voir avec ma photo » sur vos fiches, et 2 nouveaux modèles chaque mois.</p></div>
+      <div><b>19 € par mois</b><p>Hébergement, boutons « Voir chez moi » et « Voir avec ma photo (IA) » sur vos fiches, et 2 nouveaux modèles chaque mois.</p></div>
       <div><b>Premier modèle offert</b><p>Choisissez un de vos produits : nous le modélisons gratuitement pour que vous jugiez sur pièce.</p></div>
-      <div><b>Le vrai meuble, en français</b><p>Chaque modèle 3D est fait par nous aux cotes exactes : ni deviné par une IA, ni monté à partir d'une photo. Dans « Voir avec ma photo », l'IA ne règle que la lumière et les ombres. Tout est en français, du bouton à l'assistance.</p></div>
+      <div><b>Tous vos produits</b><p>Meubles, luminaires, miroirs, plantes, objets de déco : chaque modèle 3D est fait par nous aux cotes exactes. Dans les photos du client, un contrôle écarte toute image où l'IA a changé le produit. Tout est en français, du bouton à l'assistance.</p></div>
       <div><b>Aucune installation</b><p>Une ligne à coller dans votre fiche produit (Shopify, PrestaShop, WooCommerce ou site sur mesure).</p></div>
     </div>
   </section>
 </main>
-<footer><div class="cadre">Modèles 3D de cette démonstration : Poly Haven (polyhaven.com), licence CC0, utilisables librement. Aucune image de votre pièce n'est enregistrée ; elle n'est envoyée que si vous demandez un rendu réaliste.<br>© 2026 Antoine Barthélémy. Tous droits réservés.</div></footer>
+<footer><div class="cadre">Modèles 3D de cette démonstration : Poly Haven (polyhaven.com), licence CC0, utilisables librement. Aucune image de votre pièce n'est enregistrée par nous ; elle n'est envoyée que si vous utilisez « Voir avec ma photo (IA) ».<br>© 2026 Antoine Barthélémy. Tous droits réservés.</div></footer>
 
-<dialog id="dlgAmb" aria-label="Photo d'ambiance">
+<dialog id="dlgPile" aria-labelledby="tPile">
   <div class="dlg">
-    <div class="dlg-tete"><h2 id="tAmb">En situation</h2><button class="fermer" type="button" data-fermer aria-label="Fermer">×</button></div>
-    <img class="grande" id="ambGrande" alt="">
-    <p class="aide">Rendu 3D de notre modèle dans une pièce photographiée. Les couleurs et la forme sont celles du modèle.</p>
-  </div>
-</dialog>
-
-<dialog id="dlgPhoto" aria-labelledby="tPhoto">
-  <div class="dlg">
-    <div class="dlg-tete"><h2 id="tPhoto">Voir avec ma photo</h2><button class="fermer" type="button" data-fermer aria-label="Fermer">×</button></div>
-    <p class="note" id="phIntro">Photographiez l'endroit de votre pièce où ira le meuble, ou choisissez une ou plusieurs photos. Elles restent sur votre appareil, sauf si vous demandez un rendu réaliste.</p>
-    <div><label class="btn" for="phFichier" id="phChoisir">Prendre ou choisir des photos</label><input class="fichier" type="file" id="phFichier" accept="image/*" multiple></div>
-    <div class="ph-photos" id="phPhotos" hidden></div>
-    <div class="ph-scene" id="phScene" hidden>
-      <img id="phImg" alt="Votre pièce">
-      <model-viewer id="phVue" shadow-intensity="1.1" shadow-softness="0.5" environment-image="neutral" exposure="1" field-of-view="25deg" interaction-prompt="none" disable-zoom alt="Le meuble posé sur votre photo"></model-viewer>
-    </div>
-    <div class="reglages" id="phReglages" hidden>
-      <label>Taille <input type="range" id="phTaille" min="10" max="100" value="45"></label>
-      <label>Rotation <input type="range" id="phRot" min="-180" max="180" value="-25"></label>
-      <label>Hauteur de vue <input type="range" id="phVueH" min="0" max="45" value="15"></label>
-    </div>
-    <p class="aide" id="phAide" hidden></p>
-    <p class="note" id="phAvis" hidden>Rendu réaliste : votre photo, avec le meuble posé, est envoyée à notre service d'IA (OpenAI) qui fond la lumière et les ombres du meuble dans votre pièce. Nous ne gardons aucune photo ; OpenAI peut la garder jusqu'à 30 jours pour lutter contre les abus. L'image obtenue porte la mention « Image modifiée par IA ».</p>
-    <p class="note" id="phEtat" role="status" hidden></p>
-    <div class="boutons" id="phBoutons" hidden>
-      <button class="btn" type="button" id="phIA">Rendu réaliste</button>
-      <button class="btn second" type="button" id="phEnr">Enregistrer l'image</button>
-      <label class="btn second" for="phFichier">Ajouter des photos</label>
-    </div>
-    <div id="phResultat" hidden>
-      <figure class="rendu"><img id="phRendu" alt="Votre pièce avec le meuble, rendu réaliste"><figcaption>Image modifiée par IA</figcaption></figure>
-      <div class="boutons">
-        <button class="btn" type="button" id="phEnrRendu">Enregistrer le rendu</button>
-        <button class="btn second" type="button" id="phRetour">Revenir au placement</button>
-      </div>
-    </div>
+    <div class="dlg-tete"><h2 id="tPile">Vos photos avec le produit</h2><button class="fermer" type="button" data-fermer aria-label="Fermer">×</button></div>
+    <div class="etalees" id="etalees"></div>
+    <div class="boutons"><label class="btn second" for="iaFichier">Ajouter des photos</label></div>
   </div>
 </dialog>
 
 <script>
-const PRODUITS = [{"id":"enfilade-noyer-cannage","rayon":"Rangement","nom":"Enfilade Lison, noyer et lattes","largeur_cm":244,"profondeur_cm":52,"hauteur_cm":68,"prix":"1 290 €","texte":"Placage noyer, plateau en pierre claire, deux portes à lattes de bois, pieds en métal noir. Grand rangement pour le salon ou la salle à manger.","source":"modern_wooden_cabinet","ambiances":["ambiances/enfilade-noyer-cannage-1.jpg","ambiances/enfilade-noyer-cannage-2.jpg","ambiances/enfilade-noyer-cannage-3.jpg"],"glb":"modeles/enfilade-noyer-cannage.glb"},{"id":"fauteuil-chene-cuir","rayon":"Salon","nom":"Fauteuil Odile, chêne et cuir noir","largeur_cm":82,"profondeur_cm":99,"hauteur_cm":102,"prix":"690 €","texte":"Structure en chêne massif, coussins en cuir pleine fleur noir, accoudoirs en bois.","source":"modern_arm_chair_01","ambiances":["ambiances/fauteuil-chene-cuir-1.jpg","ambiances/fauteuil-chene-cuir-2.jpg","ambiances/fauteuil-chene-cuir-3.jpg"],"glb":"modeles/fauteuil-chene-cuir.glb"},{"id":"table-basse-beton-chene","rayon":"Salon","nom":"Table basse Basile, béton et chêne","largeur_cm":120,"profondeur_cm":60,"hauteur_cm":39,"prix":"490 €","texte":"Plateau effet béton, angles incrustés et piètement traîneau en chêne massif.","source":"modern_coffee_table_01","ambiances":["ambiances/table-basse-beton-chene-1.jpg","ambiances/table-basse-beton-chene-2.jpg","ambiances/table-basse-beton-chene-3.jpg"],"glb":"modeles/table-basse-beton-chene.glb"},{"id":"fauteuil-pivotant-cuir","rayon":"Salon","nom":"Fauteuil pivotant Mila, cuir cognac","largeur_cm":101,"profondeur_cm":119,"hauteur_cm":117,"prix":"1 150 €","texte":"Coque en bois moulé, assise en cuir cognac capitonné, pied étoile pivotant en métal chromé.","source":"mid_century_lounge_chair","ambiances":["ambiances/fauteuil-pivotant-cuir-1.jpg","ambiances/fauteuil-pivotant-cuir-2.jpg","ambiances/fauteuil-pivotant-cuir-3.jpg"],"glb":"modeles/fauteuil-pivotant-cuir.glb"},{"id":"canape-capitonne-cuir","rayon":"Salon","nom":"Canapé Émile 2 places, cuir capitonné","largeur_cm":181,"profondeur_cm":82,"hauteur_cm":71,"prix":"1 690 €","texte":"Dossier capitonné, cuir noir patiné, pieds galbés en bois foncé.","source":"sofa_02","ambiances":["ambiances/canape-capitonne-cuir-1.jpg","ambiances/canape-capitonne-cuir-2.jpg","ambiances/canape-capitonne-cuir-3.jpg"],"glb":"modeles/canape-capitonne-cuir.glb"}];
+const PRODUITS = [{"id":"enfilade-noyer-cannage","rayon":"Rangement","nom":"Enfilade Lison, noyer et lattes","largeur_cm":244,"profondeur_cm":52,"hauteur_cm":68,"prix":"1 290 €","texte":"Placage noyer, plateau en pierre claire, deux portes à lattes de bois, pieds en métal noir. Grand rangement pour le salon ou la salle à manger.","source":"modern_wooden_cabinet","categorie":"meuble de rangement","glb":"modeles/enfilade-noyer-cannage.glb"},{"id":"fauteuil-chene-cuir","rayon":"Salon","nom":"Fauteuil Odile, chêne et cuir noir","largeur_cm":82,"profondeur_cm":99,"hauteur_cm":102,"prix":"690 €","texte":"Structure en chêne massif, coussins en cuir pleine fleur noir, accoudoirs en bois.","source":"modern_arm_chair_01","categorie":"assise","glb":"modeles/fauteuil-chene-cuir.glb"},{"id":"table-basse-beton-chene","rayon":"Salon","nom":"Table basse Basile, béton et chêne","largeur_cm":120,"profondeur_cm":60,"hauteur_cm":39,"prix":"490 €","texte":"Plateau effet béton, angles incrustés et piètement traîneau en chêne massif.","source":"modern_coffee_table_01","categorie":"table basse","glb":"modeles/table-basse-beton-chene.glb"},{"id":"fauteuil-pivotant-cuir","rayon":"Salon","nom":"Fauteuil pivotant Mila, cuir cognac","largeur_cm":101,"profondeur_cm":119,"hauteur_cm":117,"prix":"1 150 €","texte":"Coque en bois moulé, assise en cuir cognac capitonné, pied étoile pivotant en métal chromé.","source":"mid_century_lounge_chair","categorie":"assise","glb":"modeles/fauteuil-pivotant-cuir.glb"},{"id":"canape-capitonne-cuir","rayon":"Salon","nom":"Canapé Émile 2 places, cuir capitonné","largeur_cm":181,"profondeur_cm":82,"hauteur_cm":71,"prix":"1 690 €","texte":"Dossier capitonné, cuir noir patiné, pieds galbés en bois foncé.","source":"sofa_02","categorie":"assise","glb":"modeles/canape-capitonne-cuir.glb"},{"id":"plante-pot-terre-cuite","rayon":"Déco","categorie":"plante en pot, posée au sol","nom":"Plante Rosa, pot en terre cuite","largeur_cm":70,"profondeur_cm":66,"hauteur_cm":84,"prix":"89 €","texte":"Plante d intérieur au feuillage dense, dans un pot en terre cuite. À poser au sol, près d’une fenêtre.","source":"potted_plant_02","glb":"modeles/plante-pot-terre-cuite.glb"},{"id":"miroir-dore-baroque","rayon":"Déco","categorie":"miroir mural, accroché au mur","nom":"Miroir Apolline, cadre doré","largeur_cm":49,"profondeur_cm":3,"hauteur_cm":74,"prix":"159 €","texte":"Cadre sculpté doré à la feuille, style baroque. À accrocher au mur, au-dessus d’une console ou d’une cheminée.","source":"ornate_mirror_01","glb":"modeles/miroir-dore-baroque.glb"},{"id":"vase-ceramique","rayon":"Déco","categorie":"vase à poser sur une table ou un meuble","nom":"Vase Jeanne, céramique émaillée","largeur_cm":22,"profondeur_cm":22,"hauteur_cm":31,"prix":"45 €","texte":"Céramique émaillée faite main. À poser sur une table, une console ou une étagère.","source":"ceramic_vase_02","glb":"modeles/vase-ceramique.glb"},{"id":"suspension-laiton","rayon":"Luminaires","categorie":"suspension, luminaire accroché au plafond","nom":"Suspension Lucien, laiton","largeur_cm":43,"profondeur_cm":43,"hauteur_cm":95,"prix":"219 €","texte":"Abat-jour en métal, finition laiton, câble textile. Hauteur réglable, à suspendre au-dessus d’une table.","source":"modern_ceiling_lamp_01","glb":"modeles/suspension-laiton.glb"}];
 const vue = document.getElementById("vue");
 const vign = document.getElementById("vignettes");
+let courant = 0;
 function montrer(i) {
   const p = PRODUITS[i];
   vue.src = p.glb;
@@ -205,240 +180,185 @@ function montrer(i) {
   document.getElementById("p").textContent = p.profondeur_cm + " cm";
   document.getElementById("h").textContent = p.hauteur_cm + " cm";
   document.getElementById("fil").textContent = "Accueil / " + p.rayon + " / " + p.nom.split(",")[0];
+  // Les murs pour le miroir, le plafond n'existe pas en réalité augmentée web : la suspension se pose au sol.
+  vue.setAttribute("ar-placement", /mural|mur/.test(p.categorie) ? "wall" : "floor");
   [...vign.children].forEach((b, j) => b.setAttribute("aria-pressed", String(j === i)));
   courant = i;
-  const gal = document.getElementById("galerie"); gal.replaceChildren();
-  (p.ambiances ?? []).forEach((src, k) => {
-    const b = document.createElement("button"); b.type = "button"; b.setAttribute("aria-label", "Agrandir la photo d'ambiance " + (k + 1));
-    const im = document.createElement("img"); im.src = src; im.alt = p.nom.split(",")[0] + " en situation, vue " + (k + 1); im.loading = "lazy";
-    b.appendChild(im); b.addEventListener("click", () => { const g = document.getElementById("ambGrande"); g.src = src; g.alt = im.alt; document.getElementById("tAmb").textContent = p.nom.split(",")[0] + ", en situation"; document.getElementById("dlgAmb").showModal(); });
-    gal.appendChild(b);
-  });
-  // Photos d'ambiance retirées le 19/11 (décor qui n'est pas celui du client) : la galerie reste masquée.
-  document.querySelector(".ambiances").hidden = true;
+  ia.resultats = []; afficherPile();
 }
-let courant = 0;
 document.querySelectorAll("[data-fermer]").forEach((b) => b.addEventListener("click", () => b.closest("dialog").close()));
 document.querySelectorAll("dialog").forEach((d) => d.addEventListener("click", (e) => { if (e.target === d) d.close(); }));
 
-// « Voir avec ma photo » : la photo est lue sur l'appareil (URL locale), le meuble 3D est dessiné par-dessus, rien n'est envoyé.
-const ph = { scene: document.getElementById("phScene"), img: document.getElementById("phImg"), vue: document.getElementById("phVue"),
-  taille: document.getElementById("phTaille"), rot: document.getElementById("phRot"), haut: document.getElementById("phVueH"), x: 50, y: 68, url: null };
-function phCadre() {
-  const r = ph.img.naturalWidth / ph.img.naturalHeight || 4 / 3;
-  const maxH = Math.max(220, window.innerHeight * 0.55);
-  ph.scene.style.width = Math.min(ph.scene.parentElement.clientWidth, maxH * r) + "px";
-  ph.scene.style.aspectRatio = String(r);
-  phPlacer();
-}
-function phPlacer() {
-  const l = Number(ph.taille.value);
-  ph.vue.style.width = l + "%"; ph.vue.style.aspectRatio = "4 / 3";
-  ph.vue.style.left = (ph.x - l / 2) + "%";
-  const hPct = l * (3 / 4) * (ph.scene.clientWidth / Math.max(1, ph.scene.clientHeight));
-  ph.vue.style.top = (ph.y - hPct / 2) + "%";
-  ph.vue.cameraOrbit = `${ph.rot.value}deg ${90 - Number(ph.haut.value)}deg auto`;
-}
-function phOuvrir() {
-  const p = PRODUITS[courant];
-  ph.vue.src = p.glb;
-  document.getElementById("tPhoto").textContent = "Voir avec ma photo : " + p.nom.split(",")[0];
-  document.getElementById("phAide").textContent = "Faites glisser le meuble pour le placer, puis réglez sa taille à l'œil (largeur réelle : " + p.largeur_cm + " cm, hauteur : " + p.hauteur_cm + " cm). C'est notre modèle 3D du meuble, aux couleurs et aux formes exactes, posé sur votre photo : une simulation, pas une photo retouchée.";
-  document.getElementById("dlgPhoto").showModal();
-  if (ph.url) phCadre();
-}
-document.getElementById("avecPhoto").addEventListener("click", phOuvrir);
-// Plusieurs photos possibles : chacune garde son propre placement du meuble.
-ph.photos = []; ph.active = -1;
-function phGarder() {
-  const a = ph.photos[ph.active]; if (!a) return;
-  Object.assign(a, { x: ph.x, y: ph.y, taille: ph.taille.value, rot: ph.rot.value, haut: ph.haut.value });
-}
-function phActiver(i) {
-  phGarder(); ph.active = i; const a = ph.photos[i];
-  ph.x = a.x; ph.y = a.y; ph.taille.value = a.taille; ph.rot.value = a.rot; ph.haut.value = a.haut;
-  ph.url = a.url; ph.img.onload = () => phCadre(); ph.img.src = a.url;
-  [...document.getElementById("phPhotos").children].forEach((b, j) => b.setAttribute("aria-pressed", String(j === i)));
-}
-document.getElementById("phFichier").addEventListener("change", (e) => {
-  const fichiers = [...(e.target.files ?? [])]; if (!fichiers.length) return;
-  const liste = document.getElementById("phPhotos"), debut = ph.photos.length;
-  fichiers.forEach((f, k) => {
-    const a = { url: URL.createObjectURL(f), x: 50, y: 68, taille: "45", rot: "-25", haut: "15" };
-    ph.photos.push(a);
-    const b = document.createElement("button"); b.type = "button"; b.setAttribute("aria-label", "Photo " + (debut + k + 1));
-    const im = document.createElement("img"); im.src = a.url; im.alt = ""; b.appendChild(im);
-    b.addEventListener("click", () => phActiver(debut + k)); liste.appendChild(b);
-  });
-  ["phScene", "phReglages", "phAide", "phBoutons"].forEach((id) => { document.getElementById(id).hidden = false; });
-  liste.hidden = ph.photos.length < 2;
-  document.getElementById("phChoisir").hidden = true; document.getElementById("phIntro").hidden = true;
-  phActiver(debut);
-  e.target.value = "";
-});
-[ph.taille, ph.rot, ph.haut].forEach((c) => c.addEventListener("input", phPlacer));
-window.addEventListener("resize", () => { if (ph.url && document.getElementById("dlgPhoto").open) phCadre(); });
-let glisse = null;
-ph.vue.addEventListener("pointerdown", (e) => { glisse = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: ph.x, y: ph.y }; ph.vue.setPointerCapture(e.pointerId); ph.vue.style.cursor = "grabbing"; });
-ph.vue.addEventListener("pointermove", (e) => {
-  if (!glisse || e.pointerId !== glisse.id) return;
-  ph.x = Math.min(100, Math.max(0, glisse.x + (e.clientX - glisse.x0) / ph.scene.clientWidth * 100));
-  ph.y = Math.min(100, Math.max(0, glisse.y + (e.clientY - glisse.y0) / ph.scene.clientHeight * 100));
-  phPlacer();
-});
-const phLacher = () => { glisse = null; ph.vue.style.cursor = "grab"; };
-ph.vue.addEventListener("pointerup", phLacher); ph.vue.addEventListener("pointercancel", phLacher);
-// Compose la photo et le meuble 3D posé dessus. Rend aussi le cadre du meuble dans l'image (pour le masque de l'IA).
-async function phComposer(Wmax) {
-  // Taille de l'image : la finesse de l'écran (pas plus), pour que le meuble ne soit pas agrandi et flou.
-  const W = Math.min(ph.img.naturalWidth, Wmax ?? Math.max(1080, Math.round(ph.scene.clientWidth * (window.devicePixelRatio || 1)))), k = W / ph.scene.clientWidth, H = Math.round(ph.scene.clientHeight * k);
-  const c = document.createElement("canvas"); c.width = W; c.height = H;
-  const g = c.getContext("2d"); g.drawImage(ph.img, 0, 0, W, H);
-  ph.vue.classList.add("libre");
-  try {
-    const rs = ph.scene.getBoundingClientRect(), rv = ph.vue.getBoundingClientRect();
-    // Le temps de la capture, le meuble est rendu en plus grand puis réduit à l'écran : il reste net dans l'image.
-    const f = Math.min(4, Math.max(1, k / (window.devicePixelRatio || 1))), avant = ph.vue.style.cssText;
-    if (f > 1.05) {
-      Object.assign(ph.vue.style, { width: rv.width * f + "px", left: rv.left - rs.left + "px", top: rv.top - rs.top + "px", transform: "scale(" + 1 / f + ")", transformOrigin: "0 0" });
-      await new Promise((r) => setTimeout(r, 900));
-    }
-    const meuble = await createImageBitmap(await ph.vue.toBlob({ mimeType: "image/png" }));
-    ph.vue.style.cssText = avant;
-    const cadre = { x: (rv.left - rs.left) * k, y: (rv.top - rs.top) * k, w: rv.width * k, h: rv.height * k };
-    g.drawImage(meuble, cadre.x, cadre.y, cadre.w, cadre.h);
-    // Zone réellement occupée par le meuble (pixels non transparents du rendu 3D), pour un masque serré.
-    const t = document.createElement("canvas"); t.width = meuble.width; t.height = meuble.height;
-    const tg = t.getContext("2d"); tg.drawImage(meuble, 0, 0);
-    const d = tg.getImageData(0, 0, t.width, t.height).data; let x0 = t.width, y0 = t.height, x1 = 0, y1 = 0;
-    for (let y = 0; y < t.height; y += 2) for (let x = 0; x < t.width; x += 2) if (d[(y * t.width + x) * 4 + 3] > 40) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
-    const sx = cadre.w / t.width, sy = cadre.h / t.height;
-    const zone = x1 > x0 ? { x: cadre.x + x0 * sx, y: cadre.y + y0 * sy, w: (x1 - x0) * sx, h: (y1 - y0) * sy } : cadre;
-    return { c, zone };
-  } finally { ph.vue.classList.remove("libre"); }
-}
-function phTelecharger(canvas, suffixe) {
-  return new Promise((r) => canvas.toBlob((blob) => {
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "ma-piece-" + PRODUITS[courant].id + "-" + (ph.active + 1) + suffixe + ".jpg";
-    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); r();
-  }, "image/jpeg", 0.9));
-}
-document.getElementById("phEnr").addEventListener("click", async (e) => {
-  const bouton = e.currentTarget; bouton.disabled = true;
-  try { const { c } = await phComposer(); await phTelecharger(c, ""); } finally { bouton.disabled = false; }
+// 1) « Voir chez moi » : la réalité augmentée, inchangée.
+document.getElementById("voir").addEventListener("click", () => {
+  if (vue.canActivateAR) vue.activateAR(); else document.getElementById("arAbsent").hidden = false;
 });
 
-// « Rendu réaliste » (décision d'Antoine du 19/11 : méthode hybride, OpenAI) : notre meuble est posé d'abord, aux vraies
-// cotes ; l'IA ne retouche que la zone du meuble et de son ombre (masque) pour fondre lumière, ombres et reflets ;
-// le résultat est recollé sur la photo d'origine, donc le reste de la photo ne bouge pas et n'est jamais étiré.
+// 2) « Voir avec ma photo (IA) » (directive d'Antoine du 21/11) : le client prend une ou plusieurs photos de l'endroit
+// voulu ; chaque photo part à l'IA avec deux vues du produit (tirées de notre modèle 3D) et ses cotes ; l'IA met le
+// produit dans la photo. Le client n'a rien à placer. Les résultats s'empilent sous le texte, et s'étalent au clic.
 const SERVEUR_IA = "https://catalogue-ra-photo.antoinebarthelemy60.workers.dev";
-ph.rendu = null;
-function phEtat(texte) { const p = document.getElementById("phEtat"); p.textContent = texte; p.hidden = !texte; }
-function phZoneMasque(zone, W, H) {
-  // Le meuble, plus une marge pour son ombre (surtout en dessous) et les reflets autour.
-  const mx = zone.w * 0.18, haut = zone.h * 0.08, bas = zone.h * 0.30;
-  const x = Math.max(0, zone.x - mx), y = Math.max(0, zone.y - haut);
-  return { x, y, w: Math.min(W, zone.x + zone.w + mx) - x, h: Math.min(H, zone.y + zone.h + bas) - y };
-}
-function phEcart(a, b, zone) {
-  // Contrôle de fidélité : forme et couleurs du meuble comparées avant et après l'IA, après avoir retiré
-  // l'écart moyen de luminosité (l'IA a le droit de changer l'éclairage, pas le meuble).
-  const n = 48, ca = document.createElement("canvas"), cb = document.createElement("canvas"); ca.width = cb.width = n; ca.height = cb.height = n;
-  ca.getContext("2d").drawImage(a, zone.x, zone.y, zone.w, zone.h, 0, 0, n, n);
-  cb.getContext("2d").drawImage(b, zone.x, zone.y, zone.w, zone.h, 0, 0, n, n);
-  const da = ca.getContext("2d").getImageData(0, 0, n, n).data, db = cb.getContext("2d").getImageData(0, 0, n, n).data;
-  const m = [0, 0, 0, 0, 0, 0];
-  for (let i = 0; i < da.length; i += 4) for (let k = 0; k < 3; k++) { m[k] += da[i + k]; m[3 + k] += db[i + k]; }
-  const px = da.length / 4; for (let k = 0; k < 6; k++) m[k] /= px;
-  // Écart type par couleur : on compare des valeurs centrées et réduites, insensibles au contraste de l'éclairage.
-  const e = [0, 0, 0, 0, 0, 0];
-  for (let i = 0; i < da.length; i += 4) for (let k = 0; k < 3; k++) { e[k] += (da[i + k] - m[k]) ** 2; e[3 + k] += (db[i + k] - m[3 + k]) ** 2; }
-  for (let k = 0; k < 6; k++) e[k] = Math.sqrt(e[k] / px) || 1;
-  let s = 0;
-  for (let i = 0; i < da.length; i += 4) for (let k = 0; k < 3; k++) s += Math.abs((da[i + k] - m[k]) / e[k] - (db[i + k] - m[3 + k]) / e[3 + k]);
-  return s / (px * 3);
-}
-// Contrôle de FORME (21/11, après les essais : une table basse déplacée ou tournée par l'IA passait le contrôle
-// des couleurs) : corrélation des contours du meuble avant et après l'IA, insensible à la lumière.
-function phForme(a, b, zone) {
-  const n = 64;
-  const gris = (img) => { const c = document.createElement("canvas"); c.width = c.height = n; const g = c.getContext("2d"); g.drawImage(img, zone.x, zone.y, zone.w, zone.h, 0, 0, n, n); const d = g.getImageData(0, 0, n, n).data, v = new Float64Array(n * n); for (let i = 0; i < n * n; i++) v[i] = 0.3 * d[i * 4] + 0.59 * d[i * 4 + 1] + 0.11 * d[i * 4 + 2]; return v; };
-  const contours = (g) => { const e = new Float64Array(n * n); for (let j = 1; j < n - 1; j++) for (let i = 1; i < n - 1; i++) { const p = (x, y) => g[(j + y) * n + i + x]; e[j * n + i] = Math.hypot(p(1, -1) + 2 * p(1, 0) + p(1, 1) - p(-1, -1) - 2 * p(-1, 0) - p(-1, 1), p(-1, 1) + 2 * p(0, 1) + p(1, 1) - p(-1, -1) - 2 * p(0, -1) - p(1, -1)); } return e; };
-  const ea = contours(gris(a)), eb = contours(gris(b));
-  let ma = 0, mb = 0; for (let i = 0; i < ea.length; i++) { ma += ea[i]; mb += eb[i]; } ma /= ea.length; mb /= eb.length;
-  let s = 0, sa = 0, sb = 0; for (let i = 0; i < ea.length; i++) { s += (ea[i] - ma) * (eb[i] - mb); sa += (ea[i] - ma) ** 2; sb += (eb[i] - mb) ** 2; }
-  return s / (Math.sqrt(sa * sb) || 1);
-}
-// Réglé hors ligne sur les essais des 20 et 21/11 : rendus fidèles 0,60 à 0,75 ; table déplacée ou redessinée 0,04 à 0,57.
-const SEUIL_FORME = 0.58;
-// Réglé sur les essais du 20/11 : rendus fidèles de 0,29 à 0,58 ; meuble déplacé ou changé de 0,70 à 1,22.
-const SEUIL_ECART = 0.65;
-async function phRenduRealiste() {
-  const bouton = document.getElementById("phIA"); bouton.disabled = true;
+const MAX_PHOTOS = 4;
+const ia = { resultats: [], journal: [] };
+function iaEtat(t) { const p = document.getElementById("iaEtat"); p.textContent = t; p.hidden = !t; }
+document.getElementById("avecPhoto").addEventListener("click", () => {
+  const avis = document.getElementById("iaAvis"); avis.hidden = false; avis.scrollIntoView({ block: "nearest", behavior: "smooth" });
+});
+const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
+const image = (src) => new Promise((ok, ko) => { const im = new Image(); im.onload = () => ok(im); im.onerror = ko; im.src = src; });
+const enBlob = (c, type = "image/png", q) => new Promise((r) => c.toBlob(r, type, q));
+
+// Deux vues du produit sur fond blanc, prises dans notre modèle 3D (les vraies formes et couleurs du produit).
+async function iaVuesProduit() {
+  const orbite = vue.cameraOrbit, vues = [];
   try {
-    phEtat("Création du rendu réaliste, environ 30 secondes…");
-    const { c, zone } = await phComposer(2048);
-    const W = c.width, H = c.height, r = W / H;
-    // Format accepté par l'IA, le plus proche de la photo ; la photo y est placée sans déformation (bandes autour si besoin).
-    const [TW, TH] = r > 1.2 ? [1536, 1024] : r < 0.83 ? [1024, 1536] : [1024, 1024];
-    const s = Math.min(TW / W, TH / H), dx = (TW - W * s) / 2, dy = (TH - H * s) / 2;
-    const img = document.createElement("canvas"); img.width = TW; img.height = TH;
-    const gi = img.getContext("2d"); gi.fillStyle = "#808080"; gi.fillRect(0, 0, TW, TH); gi.drawImage(c, dx, dy, W * s, H * s);
-    const zm = phZoneMasque(zone, W, H);
-    // Envoi en fichier, sans masque (essais du 20/11 : avec masque, l'IA repeint la zone au lieu de garder le meuble).
-    const fichier = await new Promise((r) => img.toBlob(r, "image/png"));
-    const envoi = new FormData(); envoi.append("image", fichier, "piece.png"); envoi.append("taille", TW + "x" + TH);
-    let fin = null, ecart = null;
-    for (let essai = 1; essai <= 2 && !fin; essai++) {
-      if (essai === 2) phEtat("Premier rendu écarté (meuble modifié par l'IA), deuxième essai…");
-      const rep = await fetch(SERVEUR_IA, { method: "POST", body: envoi });
-      const json = await rep.json().catch(() => ({}));
-      if (!rep.ok || !json.data?.[0]?.b64_json) throw new Error(json.error?.message || ("réponse " + rep.status));
-      const sortie = await createImageBitmap(await (await fetch("data:image/jpeg;base64," + json.data[0].b64_json)).blob());
-      // Recollage : seule la zone du meuble et de son ombre vient de l'IA, avec un bord adouci ; tout le reste est la photo d'origine.
-      const essaiFin = document.createElement("canvas"); essaiFin.width = W; essaiFin.height = H;
-      essaiFin.getContext("2d").drawImage(c, 0, 0);
-      const morceau = document.createElement("canvas"); morceau.width = W; morceau.height = H;
-      const gp = morceau.getContext("2d"); gp.drawImage(sortie, dx, dy, W * s, H * s, 0, 0, W, H);
-      const bord = Math.max(6, Math.round(Math.min(zm.w, zm.h) * 0.06));
-      const fondu = document.createElement("canvas"); fondu.width = W; fondu.height = H;
-      const gfd = fondu.getContext("2d"); gfd.filter = "blur(" + bord + "px)"; gfd.fillStyle = "#fff"; gfd.fillRect(zm.x + bord, zm.y + bord, zm.w - 2 * bord, zm.h - 2 * bord);
-      gp.globalCompositeOperation = "destination-in"; gp.drawImage(fondu, 0, 0);
-      essaiFin.getContext("2d").drawImage(morceau, 0, 0);
-      ecart = phEcart(c, essaiFin, zone); const forme = phForme(c, essaiFin, zone);
-      ph.dernierEcart = ecart; ph.derniereForme = forme; ph.dernierRendu = essaiFin; ph.essais = essai; // gardés pour les essais, même si écarté
-      if (ecart <= SEUIL_ECART && forme >= SEUIL_FORME) fin = essaiFin;
+    for (const o of ["-30deg 75deg auto", "0deg 88deg auto"]) {
+      vue.cameraOrbit = o; vue.jumpCameraToGoal(); await attendre(450);
+      const im = await createImageBitmap(await vue.toBlob({ mimeType: "image/png", idealAspect: true }));
+      const c = document.createElement("canvas"); const k = Math.min(1, 1024 / Math.max(im.width, im.height));
+      c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+      const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
+      vues.push({ c, couleurs: iaHistogramme(g.getImageData(0, 0, c.width, c.height).data, true) });
     }
-    if (!fin) {
-      phEtat("L'IA a modifié le meuble (forme ou couleurs) deux fois de suite : rendu écarté. Le placement 3D, lui, reste exact. Réessayez, ou enregistrez l'image sans rendu.");
-      return;
-    }
-    const gf = fin.getContext("2d");
-    // Mention obligatoire (règlement européen sur l'IA, article 50), inscrite dans l'image enregistrée elle-même.
-    const fs = Math.max(14, Math.round(W / 60)); gf.font = "600 " + fs + "px Inter, system-ui, sans-serif";
-    const txt = "Image modifiée par IA", lw = gf.measureText(txt).width;
-    gf.fillStyle = "rgba(0,0,0,.62)"; gf.fillRect(fs * 0.6, H - fs * 2.2, lw + fs, fs * 1.6);
-    gf.fillStyle = "#fff"; gf.fillText(txt, fs * 1.1, H - fs * 0.95);
-    ph.rendu = fin;
-    const vueRendu = document.getElementById("phRendu"); vueRendu.src = fin.toDataURL("image/jpeg", 0.9);
-    ["phScene", "phReglages", "phAide", "phPhotos"].forEach((id) => { document.getElementById(id).hidden = true; });
-    document.getElementById("phResultat").hidden = false;
-    phEtat("");
-  } catch (err) {
-    phEtat("Le rendu réaliste n'a pas pu être créé (" + String(err.message || err).slice(0, 240) + "). Votre placement est intact.");
-  } finally { bouton.disabled = false; }
+  } finally { vue.cameraOrbit = orbite; vue.jumpCameraToGoal(); }
+  return vues;
 }
-document.getElementById("phIA").addEventListener("click", () => {
-  const avis = document.getElementById("phAvis");
-  if (avis.hidden) { avis.hidden = false; document.getElementById("phIA").textContent = "Envoyer et créer le rendu"; return; }
-  phRenduRealiste();
+
+// Taille envoyée à l'IA : même forme que la photo (rien n'est étiré), côté long 1536, multiples de 16.
+function iaTaille(w, h) {
+  const k = 1536 / Math.max(w, h);
+  return [Math.max(512, Math.round(w * k / 16) * 16), Math.max(512, Math.round(h * k / 16) * 16)];
+}
+
+// Couleurs d'une zone : histogramme teinte et saturation (12 teintes x 2 saturations + gris clair, moyen, foncé).
+function iaHistogramme(d, sansBlanc, masque) {
+  const h = new Float64Array(27); let n = 0;
+  for (let i = 0, j = 0; i < d.length; i += 4, j++) {
+    if (masque && !masque[j]) continue;
+    const r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), s = mx ? (mx - mn) / mx : 0;
+    if (sansBlanc && mx > 0.97 && s < 0.04) continue;
+    let k;
+    if (s < 0.18) k = 24 + (mx > 0.66 ? 0 : mx > 0.33 ? 1 : 2);
+    else { let t = mx === r ? (g - b) / (mx - mn) : mx === g ? 2 + (b - r) / (mx - mn) : 4 + (r - g) / (mx - mn); t = (t * 60 + 360) % 360; k = Math.floor(t / 30) * 2 + (s > 0.5 ? 1 : 0); }
+    h[k]++; n++;
+  }
+  if (n) for (let k = 0; k < 27; k++) h[k] /= n;
+  return h;
+}
+const iaRessemblance = (a, b) => { let s = 0; for (let k = 0; k < a.length; k++) s += Math.sqrt(a[k] * b[k]); return s; };
+
+// Recollage : seules les zones que l'IA a changées (le produit, son ombre) viennent du rendu ; le reste est la photo
+// d'origine, au pixel près. Renvoie aussi la part de la photo changée et la ressemblance des couleurs avec le produit.
+function iaRecoller(photo, sortie, vues) {
+  const W = photo.width, H = photo.height, n = 96, m = Math.round(n * H / W);
+  const petit = (src) => { const c = document.createElement("canvas"); c.width = n; c.height = m; const g = c.getContext("2d"); g.filter = "blur(1px)"; g.drawImage(src, 0, 0, n, m); return g.getImageData(0, 0, n, m).data; };
+  const a = petit(photo), b = petit(sortie);
+  // Écart de luminosité d'ensemble retiré (l'IA éclaircit parfois toute l'image).
+  let da = 0; for (let i = 0; i < a.length; i += 4) da += (b[i] + b[i + 1] + b[i + 2] - a[i] - a[i + 1] - a[i + 2]) / 3; da /= a.length / 4;
+  const change = new Uint8Array(n * m); let nb = 0;
+  for (let i = 0, j = 0; i < a.length; i += 4, j++) {
+    const e = (Math.abs(b[i] - a[i] - da) + Math.abs(b[i + 1] - a[i + 1] - da) + Math.abs(b[i + 2] - a[i + 2] - da)) / 3;
+    if (e > IA_SEUIL_CHANGE) { change[j] = 1; nb++; }
+  }
+  // On garde le plus grand bloc changé (le produit et son ombre), élargi d'une case, et on ignore les petits écarts épars.
+  const vu = new Uint8Array(n * m); let meilleur = [];
+  for (let j0 = 0; j0 < n * m; j0++) {
+    if (!change[j0] || vu[j0]) continue;
+    const pile = [j0], bloc = []; vu[j0] = 1;
+    while (pile.length) { const j = pile.pop(); bloc.push(j); const x = j % n, y = (j / n) | 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) { const xx = x + dx, yy = y + dy, k = yy * n + xx; if (xx >= 0 && yy >= 0 && xx < n && yy < m && change[k] && !vu[k]) { vu[k] = 1; pile.push(k); } } }
+    if (bloc.length > meilleur.length) meilleur = bloc;
+  }
+  const garde = new Uint8Array(n * m); for (const j of meilleur) { const x = j % n, y = (j / n) | 0; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const xx = x + dx, yy = y + dy; if (xx >= 0 && yy >= 0 && xx < n && yy < m) garde[yy * n + xx] = 1; } }
+  const masqueC = document.createElement("canvas"); masqueC.width = n; masqueC.height = m;
+  const mg = masqueC.getContext("2d"), md = mg.createImageData(n, m);
+  for (let j = 0; j < n * m; j++) { md.data[j * 4 + 3] = garde[j] ? 255 : 0; }
+  mg.putImageData(md, 0, 0);
+  const fin = document.createElement("canvas"); fin.width = W; fin.height = H;
+  const gf = fin.getContext("2d"); gf.drawImage(photo, 0, 0, W, H);
+  const morceau = document.createElement("canvas"); morceau.width = W; morceau.height = H;
+  const gm = morceau.getContext("2d"); gm.drawImage(sortie, 0, 0, W, H);
+  gm.globalCompositeOperation = "destination-in"; gm.filter = "blur(" + Math.round(W / n * 0.9) + "px)"; gm.drawImage(masqueC, 0, 0, W, H);
+  gf.drawImage(morceau, 0, 0);
+  // Couleurs de la zone changée comparées aux vues du produit.
+  const couleurs = iaHistogramme(b, false, (() => { const k = new Uint8Array(n * m); for (const j of meilleur) k[j] = 1; return k; })());
+  const ressemblance = Math.max(...vues.map((v) => iaRessemblance(v.couleurs, couleurs)));
+  return { fin, part: meilleur.length / (n * m), epars: (nb - meilleur.length) / (n * m), ressemblance };
+}
+// Seuils réglés sur les essais (voir notes du chef) : écart par case pour dire « changé », part minimale (le produit
+// est bien là), part maximale (l'IA n'a pas repeint la pièce), ressemblance minimale des couleurs avec le produit.
+const IA_SEUIL_CHANGE = 22, IA_PART_MIN = 0.004, IA_PART_MAX = 0.45, IA_RESSEMBLANCE_MIN = 0.55;
+
+async function iaUnePhoto(fichier, vues, p, numero, total) {
+  const photo = await image(URL.createObjectURL(fichier));
+  const [TW, TH] = iaTaille(photo.naturalWidth, photo.naturalHeight);
+  const base = document.createElement("canvas"); base.width = TW; base.height = TH; base.getContext("2d").drawImage(photo, 0, 0, TW, TH);
+  URL.revokeObjectURL(photo.src);
+  const envoi = new FormData();
+  envoi.append("image", await enBlob(base, "image/jpeg", 0.92), "piece.jpg");
+  for (const v of vues) envoi.append("ref", await enBlob(v.c), "produit.png");
+  envoi.append("taille", TW + "x" + TH); envoi.append("nom", p.nom); envoi.append("categorie", p.categorie || "");
+  envoi.append("l", p.largeur_cm); envoi.append("p", p.profondeur_cm); envoi.append("h", p.hauteur_cm);
+  let ligne = null;
+  for (let essai = 1; essai <= 2; essai++) {
+    iaEtat(`Photo ${numero} sur ${total} : l'IA met le produit dans votre photo, environ 30 secondes…` + (essai === 2 ? " (deuxième essai)" : ""));
+    const rep = await fetch(SERVEUR_IA, { method: "POST", body: envoi });
+    const json = await rep.json().catch(() => ({}));
+    if (!rep.ok || !json.data?.[0]?.b64_json) throw new Error(json.error?.message || ("réponse " + rep.status));
+    const sortie = await image("data:image/jpeg;base64," + json.data[0].b64_json);
+    const r = iaRecoller(base, sortie, vues);
+    ligne = { produit: p.id, photo: numero, essai, part: +r.part.toFixed(4), epars: +r.epars.toFixed(4), ressemblance: +r.ressemblance.toFixed(3), brut: sortie.src, rendu: r.fin };
+    ligne.ok = r.part >= IA_PART_MIN && r.part <= IA_PART_MAX && r.ressemblance >= IA_RESSEMBLANCE_MIN;
+    ia.journal.push(ligne);
+    if (ligne.ok) break;
+  }
+  if (!ligne.ok) return null;
+  // Mention obligatoire (règlement européen sur l'IA, article 50), inscrite dans l'image elle-même.
+  const g = ligne.rendu.getContext("2d"), fs = Math.max(14, Math.round(TW / 60));
+  g.font = "600 " + fs + "px Inter, system-ui, sans-serif"; const txt = "Image modifiée par IA", lw = g.measureText(txt).width;
+  g.fillStyle = "rgba(0,0,0,.62)"; g.fillRect(fs * 0.6, TH - fs * 2.2, lw + fs, fs * 1.6); g.fillStyle = "#fff"; g.fillText(txt, fs * 1.1, TH - fs * 0.95);
+  return ligne.rendu.toDataURL("image/jpeg", 0.9);
+}
+
+document.getElementById("iaFichier").addEventListener("change", async (e) => {
+  const place = MAX_PHOTOS - ia.resultats.length;
+  const fichiers = [...(e.target.files ?? [])].slice(0, Math.max(0, place)); e.target.value = "";
+  if (!fichiers.length) { iaEtat("Vous avez déjà " + MAX_PHOTOS + " photos pour ce produit."); return; }
+  document.getElementById("dlgPile").close();
+  const p = PRODUITS[courant], boutons = [document.getElementById("avecPhoto")]; boutons.forEach((b) => b.disabled = true);
+  let ecartees = 0, erreur = null;
+  try {
+    iaEtat("Préparation des vues du produit…");
+    const vues = await iaVuesProduit();
+    for (const [k, f] of fichiers.entries()) {
+      try { const url = await iaUnePhoto(f, vues, p, k + 1, fichiers.length); if (url) { ia.resultats.push(url); afficherPile(); } else ecartees++; }
+      catch (err) { erreur = String(err.message || err).slice(0, 200); }
+    }
+  } finally { boutons.forEach((b) => b.disabled = false); }
+  iaEtat(erreur ? "Une photo n'a pas pu être traitée (" + erreur + "). Réessayez dans un instant."
+    : ecartees ? ecartees + " photo" + (ecartees > 1 ? "s écartées" : " écartée") + " : l'IA avait changé le produit ou ne l'avait pas mis. Essayez une autre photo de l'endroit, ou « Voir chez moi »."
+    : "");
 });
-document.getElementById("phRetour").addEventListener("click", () => {
-  document.getElementById("phResultat").hidden = true;
-  ["phScene", "phReglages", "phAide"].forEach((id) => { document.getElementById(id).hidden = false; });
-  document.getElementById("phPhotos").hidden = ph.photos.length < 2; phCadre();
+
+function afficherPile() {
+  const pile = document.getElementById("pile"); pile.replaceChildren();
+  if (!ia.resultats.length) { const v = document.createElement("span"); v.className = "carte vide"; v.textContent = "Vos photos avec le produit apparaîtront ici"; pile.appendChild(v); return; }
+  ia.resultats.forEach((url) => { const c = document.createElement("span"); c.className = "carte"; const im = document.createElement("img"); im.src = url; im.alt = ""; c.appendChild(im); pile.appendChild(c); });
+  const n = document.createElement("span"); n.className = "compte"; n.textContent = ia.resultats.length + (ia.resultats.length > 1 ? " photos" : " photo"); pile.appendChild(n);
+}
+document.getElementById("pile").addEventListener("click", () => {
+  if (!ia.resultats.length) { document.getElementById("avecPhoto").click(); return; }
+  const et = document.getElementById("etalees"); et.replaceChildren();
+  const nom = PRODUITS[courant].nom.split(",")[0];
+  ia.resultats.forEach((url, k) => {
+    const f = document.createElement("figure"); f.className = "rendu";
+    const im = document.createElement("img"); im.src = url; im.alt = "Votre photo " + (k + 1) + " avec " + nom + ", image modifiée par IA";
+    const cap = document.createElement("figcaption"); cap.textContent = "Image modifiée par IA"; f.append(im, cap); et.appendChild(f);
+  });
+  document.getElementById("tPile").textContent = "Vos photos avec " + nom;
+  document.getElementById("dlgPile").showModal();
 });
-document.getElementById("phEnrRendu").addEventListener("click", () => { if (ph.rendu) phTelecharger(ph.rendu, "-rendu"); });
+
 PRODUITS.forEach((p, i) => {
   const b = document.createElement("button"); b.type = "button"; b.className = "vign";
   const t = document.createElement("b"); t.textContent = p.nom.split(",")[0];
@@ -448,11 +368,6 @@ document.getElementById("panier").addEventListener("click", (e) => { e.currentTa
 vue.addEventListener("progress", (e) => {
   const c = document.getElementById("charge"), f = e.detail.totalProgress;
   c.style.width = (f * 100) + "%"; c.style.opacity = f >= 1 ? "0" : "1";
-});
-customElements.whenDefined("model-viewer").then(() => {
-  vue.addEventListener("load", () => {
-    if (!vue.canActivateAR) document.getElementById("aide").textContent = "Ici, « Voir chez moi » ne s'ouvre pas (ordinateur ou page intégrée). Ouvrez ce lien sur un téléphone pour poser le meuble dans votre pièce.";
-  });
 });
 montrer(0);
 </script>
