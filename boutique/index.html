@@ -255,20 +255,25 @@ function iaRecoller(photo, sortie, vues) {
   const a = petit(photo), b = petit(sortie);
   // Écart de luminosité d'ensemble retiré (l'IA éclaircit parfois toute l'image).
   let da = 0; for (let i = 0; i < a.length; i += 4) da += (b[i] + b[i + 1] + b[i + 2] - a[i] - a[i + 1] - a[i + 2]) / 3; da /= a.length / 4;
-  const change = new Uint8Array(n * m); let nb = 0;
-  for (let i = 0, j = 0; i < a.length; i += 4, j++) {
-    const e = (Math.abs(b[i] - a[i] - da) + Math.abs(b[i + 1] - a[i + 1] - da) + Math.abs(b[i + 2] - a[i + 2] - da)) / 3;
-    if (e > IA_SEUIL_CHANGE) { change[j] = 1; nb++; }
-  }
-  // On garde le plus grand bloc changé (le produit et son ombre), élargi d'une case, et on ignore les petits écarts épars.
-  const vu = new Uint8Array(n * m); let meilleur = [];
-  for (let j0 = 0; j0 < n * m; j0++) {
-    if (!change[j0] || vu[j0]) continue;
-    const pile = [j0], bloc = []; vu[j0] = 1;
-    while (pile.length) { const j = pile.pop(); bloc.push(j); const x = j % n, y = (j / n) | 0;
-      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) { const xx = x + dx, yy = y + dy, k = yy * n + xx; if (xx >= 0 && yy >= 0 && xx < n && yy < m && change[k] && !vu[k]) { vu[k] = 1; pile.push(k); } } }
-    if (bloc.length > meilleur.length) meilleur = bloc;
-  }
+  const ecart = new Float32Array(n * m);
+  for (let i = 0, j = 0; i < a.length; i += 4, j++) ecart[j] = (Math.abs(b[i] - a[i] - da) + Math.abs(b[i + 1] - a[i + 1] - da) + Math.abs(b[i + 2] - a[i + 2] - da)) / 3;
+  // Plus grand bloc changé (le produit et son ombre) pour un seuil donné ; nb = toutes les cases changées.
+  const bloc = (seuil) => {
+    const change = new Uint8Array(n * m); let nb = 0;
+    for (let j = 0; j < n * m; j++) if (ecart[j] > seuil) { change[j] = 1; nb++; }
+    const vu = new Uint8Array(n * m); let meilleur = [];
+    for (let j0 = 0; j0 < n * m; j0++) {
+      if (!change[j0] || vu[j0]) continue;
+      const pile = [j0], bl = []; vu[j0] = 1;
+      while (pile.length) { const j = pile.pop(); bl.push(j); const x = j % n, y = (j / n) | 0;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) { const xx = x + dx, yy = y + dy, k = yy * n + xx; if (xx >= 0 && yy >= 0 && xx < n && yy < m && change[k] && !vu[k]) { vu[k] = 1; pile.push(k); } } }
+      if (bl.length > meilleur.length) meilleur = bl;
+    }
+    return { meilleur, nb };
+  };
+  // Contrôles au seuil strict (part changée, écarts épars : l'IA a-t-elle déplacé d'autres objets ?) ;
+  // découpe au seuil plus fin, qui prend le produit en entier (cadre de miroir, feuilles) sans fantôme.
+  const strict = bloc(IA_SEUIL_CHANGE), fin_ = bloc(IA_SEUIL_MASQUE), meilleur = fin_.meilleur;
   const garde = new Uint8Array(n * m); for (const j of meilleur) { const x = j % n, y = (j / n) | 0; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const xx = x + dx, yy = y + dy; if (xx >= 0 && yy >= 0 && xx < n && yy < m) garde[yy * n + xx] = 1; } }
   const masqueC = document.createElement("canvas"); masqueC.width = n; masqueC.height = m;
   const mg = masqueC.getContext("2d"), md = mg.createImageData(n, m);
@@ -283,11 +288,13 @@ function iaRecoller(photo, sortie, vues) {
   // Couleurs de la zone changée comparées aux vues du produit.
   const couleurs = iaHistogramme(b, false, (() => { const k = new Uint8Array(n * m); for (const j of meilleur) k[j] = 1; return k; })());
   const ressemblance = Math.max(...vues.map((v) => iaRessemblance(v.couleurs, couleurs)));
-  return { fin, part: meilleur.length / (n * m), epars: (nb - meilleur.length) / (n * m), ressemblance };
+  return { fin, part: strict.meilleur.length / (n * m), epars: (strict.nb - strict.meilleur.length) / (n * m), ressemblance };
 }
-// Seuils réglés sur les essais (voir notes du chef) : écart par case pour dire « changé », part minimale (le produit
-// est bien là), part maximale (l'IA n'a pas repeint la pièce), ressemblance minimale des couleurs avec le produit.
-const IA_SEUIL_CHANGE = 22, IA_PART_MIN = 0.004, IA_PART_MAX = 0.45, IA_RESSEMBLANCE_MIN = 0.55;
+// Seuils réglés le 21/11 sur 12 essais (16 images, notes du chef) : écart par case pour dire « changé » (contrôles),
+// écart pour la découpe, part minimale (le produit est bien là), part maximale (l'IA n'a pas repeint la pièce),
+// écarts épars maximaux (au-delà, l'IA a déplacé d'autres objets : le recollage ferait des fantômes), ressemblance
+// minimale des couleurs avec le produit. Réglés pour écarter un bon rendu plutôt que laisser passer un mauvais.
+const IA_SEUIL_CHANGE = 22, IA_SEUIL_MASQUE = 16, IA_PART_MIN = 0.004, IA_PART_MAX = 0.45, IA_EPARS_MAX = 0.02, IA_RESSEMBLANCE_MIN = 0.5;
 
 async function iaUnePhoto(fichier, vues, p, numero, total) {
   const photo = await image(URL.createObjectURL(fichier));
@@ -308,7 +315,7 @@ async function iaUnePhoto(fichier, vues, p, numero, total) {
     const sortie = await image("data:image/jpeg;base64," + json.data[0].b64_json);
     const r = iaRecoller(base, sortie, vues);
     ligne = { produit: p.id, photo: numero, essai, part: +r.part.toFixed(4), epars: +r.epars.toFixed(4), ressemblance: +r.ressemblance.toFixed(3), brut: sortie.src, rendu: r.fin };
-    ligne.ok = r.part >= IA_PART_MIN && r.part <= IA_PART_MAX && r.ressemblance >= IA_RESSEMBLANCE_MIN;
+    ligne.ok = r.part >= IA_PART_MIN && r.part <= IA_PART_MAX && r.epars <= IA_EPARS_MAX && r.ressemblance >= IA_RESSEMBLANCE_MIN;
     ia.journal.push(ligne);
     if (ligne.ok) break;
   }
