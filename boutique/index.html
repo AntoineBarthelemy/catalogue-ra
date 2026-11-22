@@ -307,7 +307,7 @@ function iaGeometrie(W, H, p, pose, z) {
   // Masque : la place du produit, avec une marge (ombre au sol, reflets), dans la photo.
   const m = 0.02 * L, bas = pose === "sol" || pose === "table" ? 0.3 * bh : 0.15 * bh;
   const masque = { x0: borne(box.x0 - 0.22 * bw - m, 0, W), y0: borne(box.y0 - 0.15 * bh - m, 0, H), x1: borne(box.x1 + 0.22 * bw + m, 0, W), y1: borne(box.y1 + bas + m, 0, H) };
-  return { k, ax, ay, dep, box, masque, W, H };
+  return { k, ax, ay, dep, box, masque, W, H, pose };
 }
 
 // Qualité de la photo : luminosité moyenne et netteté (variance du laplacien sur 4 x 4 cases ; on garde la case la plus
@@ -418,14 +418,28 @@ function iaControler(base, sortie, vues, geo) {
     else { cellsD++; if (c) dehors++; }
   }
   anneau.sort((p, q) => p - q);
+  // Coupure (réglage du 22/11 sur les vrais rendus v5) : le produit déborde du masque et le recollage le couperait
+  // (haut d'un vase, bas d'un miroir), ou l'IA a effacé un objet du client au bord du masque (fantôme). On mesure,
+  // côté par côté, la part de la bande extérieure du masque (2 cases) qui a changé ; le côté où le produit s'appuie
+  // (sol ou table en bas, plafond en haut) n'est pas compté, l'ombre et le fil y touchent normalement le bord.
+  const bande = (x0, y0, x1, y1) => { let t = 0, c = 0; for (let y = Math.max(0, y0); y < Math.min(m, y1); y++) for (let x = Math.max(0, x0); x < Math.min(n, x1); x++) { t++; if (ecart[y * n + x] > IA_SEUIL_CHANGE) c++; } return t ? c / t : 0; };
+  const cotes = { haut: M.y0 > 0 ? bande(M.x0, M.y0, M.x1, M.y0 + 2) : 0, bas: M.y1 < m ? bande(M.x0, M.y1 - 2, M.x1, M.y1) : 0, gauche: M.x0 > 0 ? bande(M.x0, M.y0, M.x0 + 2, M.y1) : 0, droite: M.x1 < n ? bande(M.x1 - 2, M.y0, M.x1, M.y1) : 0 };
+  if (geo.pose === "sol" || geo.pose === "table") cotes.bas = 0;
+  if (geo.pose === "plafond") cotes.haut = 0;
   const bx = Math.max(1, (geo.box.x1 - geo.box.x0) * sx * (geo.box.y1 - geo.box.y0) * sy);
   const couleurs = iaHistogramme(b, false, change);
+  // Produit surtout neutre mais avec des couleurs (miroir : verre gris, cadre doré) : le verre reflète la pièce du client,
+  // on compare alors seulement les teintes (cadre). Un produit tout blanc (vase) garde la comparaison complète.
+  const chroma = (h) => { let s = 0; for (let k = 0; k < 24; k++) s += h[k]; return s; };
+  const teintes = (h) => { const s = chroma(h) || 1, o = new Float64Array(27); for (let k = 0; k < 24; k++) o[k] = h[k] / s; return o; };
+  const ress = (v) => { const cv = chroma(v.couleurs); return cv < 0.5 && cv >= 0.15 ? iaRessemblance(teintes(v.couleurs), teintes(couleurs)) : iaRessemblance(v.couleurs, couleurs); };
   const r = {
     presence: changeM / bx, plein: cellsM ? changeM / cellsM : 0, dehors: cellsD ? dehors / cellsD : 0,
     bord: anneau.length ? anneau[Math.floor(anneau.length / 2)] : 0,
-    ressemblance: changeM ? Math.max(...vues.map((v) => iaRessemblance(v.couleurs, couleurs))) : 0,
+    coupe: Math.max(cotes.haut, cotes.bas, cotes.gauche, cotes.droite),
+    ressemblance: changeM ? Math.max(...vues.map(ress)) : 0,
   };
-  r.ok = r.presence >= IA_PRESENCE_MIN && r.plein <= IA_PLEIN_MAX && r.dehors <= IA_DEHORS_MAX && r.bord <= IA_BORD_MAX && r.ressemblance >= IA_RESSEMBLANCE_MIN;
+  r.ok = r.presence >= IA_PRESENCE_MIN && r.plein <= IA_PLEIN_MAX && r.dehors <= IA_DEHORS_MAX && r.bord <= IA_BORD_MAX && r.coupe <= IA_COUPE_MAX && r.ressemblance >= IA_RESSEMBLANCE_MIN;
   // Recollage de la seule zone du masque, bord adouci.
   const fin = document.createElement("canvas"); fin.width = W; fin.height = H;
   const gf = fin.getContext("2d"); gf.drawImage(base, 0, 0);
@@ -435,6 +449,24 @@ function iaControler(base, sortie, vues, geo) {
   const ins = (auBord) => auBord ? -fl * 3 : fl * 1.5; // rentré dans la zone, sauf au bord de la photo
   const ix0 = q.x0 + ins(q.x0 <= 0), iy0 = q.y0 + ins(q.y0 <= 0), ix1 = q.x1 - ins(q.x1 >= W), iy1 = q.y1 - ins(q.y1 >= H);
   gm.fillRect(ix0, iy0, ix1 - ix0, iy1 - iy0);
+  // Débord (réglage du 22/11 sur les vrais rendus v5) : le masque guide l'IA sans frontière stricte, elle dépasse parfois
+  // (haut d'un vase, bas d'un miroir, anse d'une tasse effacée). On recolle aussi les cases changées reliées au masque,
+  // dans une marge de 40 % de la taille du produit, sinon le recollage couperait le produit ou laisserait un fantôme.
+  const bw = (geo.box.x1 - geo.box.x0) * sx, bh = (geo.box.y1 - geo.box.y0) * sy;
+  const E = { x0: Math.max(0, Math.floor(M.x0 - 0.4 * bw)), y0: Math.max(0, Math.floor(M.y0 - 0.4 * bh)), x1: Math.min(n, Math.ceil(M.x1 + 0.4 * bw)), y1: Math.min(m, Math.ceil(M.y1 + 0.4 * bh)) };
+  const vu = new Uint8Array(n * m), pile = [];
+  for (let y = Math.max(0, M.y0 - 1); y < Math.min(m, M.y1 + 1); y++) for (let x = Math.max(0, M.x0 - 1); x < Math.min(n, M.x1 + 1); x++) if (!dansM(x, y) && ecart[y * n + x] > IA_SEUIL_PRESENCE) { vu[y * n + x] = 1; pile.push(y * n + x); }
+  while (pile.length) {
+    const j = pile.pop(), x = j % n, y = (j - x) / n;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const X = x + dx, Y = y + dy, J = Y * n + X;
+      if (X < E.x0 || X >= E.x1 || Y < E.y0 || Y >= E.y1 || vu[J] || dansM(X, Y) || ecart[J] <= IA_SEUIL_PRESENCE) continue;
+      vu[J] = 1; pile.push(J);
+    }
+  }
+  let deborde = 0;
+  for (let j = 0; j < n * m; j++) if (vu[j]) { deborde++; const x = j % n, y = (j - x) / n; gm.fillRect((x - 3) / sx, (y - 3) / sy, 7 / sx, 7 / sy); }
+  r.deborde = deborde / Math.max(1, cellsM);
   gm.filter = "none"; gm.globalCompositeOperation = "source-in"; gm.drawImage(sortie, 0, 0, W, H);
   gf.drawImage(morceau, 0, 0);
   r.fin = fin;
@@ -443,7 +475,7 @@ function iaControler(base, sortie, vues, geo) {
 // Seuils provisoires du contrôle (22/11), à régler sur les 20 essais dès que le serveur v5 est en place (outil
 // essai-seuils) : écart par case pour dire « changé », présence minimale du produit, part maximale du masque repeinte,
 // changements maximaux hors du masque, écart maximal au bord du masque, ressemblance minimale des couleurs.
-const IA_SEUIL_CHANGE = 22, IA_SEUIL_PRESENCE = 14, IA_PRESENCE_MIN = 0.08, IA_PLEIN_MAX = 0.95, IA_DEHORS_MAX = 0.2, IA_BORD_MAX = 16, IA_RESSEMBLANCE_MIN = 0.5;
+const IA_SEUIL_CHANGE = 22, IA_SEUIL_PRESENCE = 14, IA_PRESENCE_MIN = 0.08, IA_PLEIN_MAX = 0.95, IA_DEHORS_MAX = 0.2, IA_BORD_MAX = 16, IA_COUPE_MAX = 1, IA_RESSEMBLANCE_MIN = 0.5;
 
 // Mention inscrite dans l'image elle-même (« Image modifiée par IA » : règlement européen sur l'IA, article 50).
 function iaMention(c, txt) {
@@ -507,7 +539,7 @@ async function iaUnePhoto(photo, choix, vues, p, pose, numero, total) {
       if (!rep.ok || !json.data?.[0]?.b64_json) { ligneBilan.raisons.push("serveur : " + String(json.error?.message || rep.status).slice(0, 160)); break; }
       const sortie = await image("data:image/jpeg;base64," + json.data[0].b64_json);
       const r = iaControler(base, sortie, vues, geo);
-      const ligne = { produit: p.id, photo: numero, essai, presence: +r.presence.toFixed(3), plein: +r.plein.toFixed(3), dehors: +r.dehors.toFixed(3), bord: +r.bord.toFixed(1), ressemblance: +r.ressemblance.toFixed(3), ok: r.ok, brut: sortie.src, rendu: r.fin };
+      const ligne = { produit: p.id, photo: numero, essai, presence: +r.presence.toFixed(3), plein: +r.plein.toFixed(3), dehors: +r.dehors.toFixed(3), bord: +r.bord.toFixed(1), coupe: +r.coupe.toFixed(3), ressemblance: +r.ressemblance.toFixed(3), ok: r.ok, brut: sortie.src, rendu: r.fin };
       ia.journal.push(ligne);
       if (r.ok) { retenu = r.fin; break; }
       // Sans le serveur v5 (masque ignoré), l'IA place le produit où elle veut : inutile de payer d'autres essais.
