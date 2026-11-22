@@ -305,8 +305,10 @@ function iaGeometrie(W, H, p, pose, z) {
   else { y0 = ay - bh / 2; y1 = ay + bh / 2; }
   const box = { x0: ax - bw / 2, y0, x1: ax + bw / 2, y1 };
   // Masque : la place du produit, avec une marge (ombre au sol, reflets), dans la photo.
-  const m = 0.02 * L, bas = pose === "sol" || pose === "table" ? 0.3 * bh : 0.15 * bh;
-  const masque = { x0: borne(box.x0 - 0.22 * bw - m, 0, W), y0: borne(box.y0 - 0.15 * bh - m, 0, H), x1: borne(box.x1 + 0.22 * bw + m, 0, W), y1: borne(box.y1 + bas + m, 0, H) };
+  // Marges resserrées le 22/11 (avant : 22 % sur les côtés, 15 % au-dessus) : sur 20 vrais rendus, l IA effaçait souvent les objets du client
+  // pris dans la marge (table basse, cheminée, tapis, sapin). Le produit qui dépasse est recollé quand même (débord, iaControler).
+  const m = 0.01 * L, bas = pose === "sol" || pose === "table" ? 0.2 * bh : 0.1 * bh;
+  const masque = { x0: borne(box.x0 - 0.08 * bw - m, 0, W), y0: borne(box.y0 - 0.06 * bh - m, 0, H), x1: borne(box.x1 + 0.08 * bw + m, 0, W), y1: borne(box.y1 + bas + m, 0, H) };
   return { k, ax, ay, dep, box, masque, W, H, pose };
 }
 
@@ -433,13 +435,15 @@ function iaControler(base, sortie, vues, geo) {
   const chroma = (h) => { let s = 0; for (let k = 0; k < 24; k++) s += h[k]; return s; };
   const teintes = (h) => { const s = chroma(h) || 1, o = new Float64Array(27); for (let k = 0; k < 24; k++) o[k] = h[k] / s; return o; };
   const ress = (v) => { const cv = chroma(v.couleurs); return cv < 0.5 && cv >= 0.15 ? iaRessemblance(teintes(v.couleurs), teintes(couleurs)) : iaRessemblance(v.couleurs, couleurs); };
+  // Produit surtout gris ou blanc (miroir, globe de verre) : son verre prend les couleurs et la lumière de la pièce du client, la ressemblance des couleurs ne dit presque rien ; seuil abaissé (22/11 : 7 rendus fidèles sur 8 de ces produits écartés à tort au seuil commun).
+  const neutre = vues.some((v) => 1 - chroma(v.couleurs) >= 0.5);
   const r = {
     presence: changeM / bx, plein: cellsM ? changeM / cellsM : 0, dehors: cellsD ? dehors / cellsD : 0,
     bord: anneau.length ? anneau[Math.floor(anneau.length / 2)] : 0,
-    coupe: Math.max(cotes.haut, cotes.bas, cotes.gauche, cotes.droite),
+    coupe: Math.max(cotes.haut, cotes.bas, cotes.gauche, cotes.droite), neutre,
     ressemblance: changeM ? Math.max(...vues.map(ress)) : 0,
   };
-  r.ok = r.presence >= IA_PRESENCE_MIN && r.plein <= IA_PLEIN_MAX && r.dehors <= IA_DEHORS_MAX && r.bord <= IA_BORD_MAX && r.coupe <= IA_COUPE_MAX && r.ressemblance >= IA_RESSEMBLANCE_MIN;
+  r.ok = r.presence >= IA_PRESENCE_MIN && r.plein <= IA_PLEIN_MAX && r.dehors <= IA_DEHORS_MAX && r.bord <= IA_BORD_MAX && r.coupe <= IA_COUPE_MAX && r.ressemblance >= (r.neutre ? IA_RESSEMBLANCE_NEUTRE_MIN : IA_RESSEMBLANCE_MIN);
   // Recollage de la seule zone du masque, bord adouci.
   const fin = document.createElement("canvas"); fin.width = W; fin.height = H;
   const gf = fin.getContext("2d"); gf.drawImage(base, 0, 0);
@@ -475,7 +479,7 @@ function iaControler(base, sortie, vues, geo) {
 // Seuils provisoires du contrôle (22/11), à régler sur les 20 essais dès que le serveur v5 est en place (outil
 // essai-seuils) : écart par case pour dire « changé », présence minimale du produit, part maximale du masque repeinte,
 // changements maximaux hors du masque, écart maximal au bord du masque, ressemblance minimale des couleurs.
-const IA_SEUIL_CHANGE = 22, IA_SEUIL_PRESENCE = 14, IA_PRESENCE_MIN = 0.08, IA_PLEIN_MAX = 0.95, IA_DEHORS_MAX = 0.2, IA_BORD_MAX = 16, IA_COUPE_MAX = 1, IA_RESSEMBLANCE_MIN = 0.5;
+const IA_SEUIL_CHANGE = 22, IA_SEUIL_PRESENCE = 14, IA_PRESENCE_MIN = 0.08, IA_PLEIN_MAX = 0.99, IA_DEHORS_MAX = 0.2, IA_BORD_MAX = 16, IA_COUPE_MAX = 1, IA_RESSEMBLANCE_MIN = 0.5, IA_RESSEMBLANCE_NEUTRE_MIN = 0.15;
 
 // Mention inscrite dans l'image elle-même (« Image modifiée par IA » : règlement européen sur l'IA, article 50).
 function iaMention(c, txt) {
