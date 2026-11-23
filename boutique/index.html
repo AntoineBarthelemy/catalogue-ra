@@ -350,7 +350,10 @@ function iaQualite(src) {
     s[t] += v; s2[t] += v * v; nb[t]++;
   }
   let net = 0; for (let t = 0; t < 16; t++) if (nb[t]) net = Math.max(net, s2[t] / nb[t] - (s[t] / nb[t]) ** 2);
-  const hz = iaHorizon(gr, w, h);
+  // Horizon : réduction de bonne qualité à part (la réduction rapide ci-dessus crée des contours parasites qui faussent la pente des verticales).
+  const c2 = document.createElement("canvas"); c2.width = w; c2.height = h; const g2 = c2.getContext("2d"); g2.imageSmoothingEnabled = true; g2.imageSmoothingQuality = "high"; g2.drawImage(src, 0, 0, w, h);
+  const d2 = g2.getImageData(0, 0, w, h).data, gr2 = new Float32Array(w * h); for (let i = 0, j = 0; i < d2.length; i += 4, j++) gr2[j] = 0.299 * d2[i] + 0.587 * d2[i + 1] + 0.114 * d2[i + 2];
+  const hz = iaHorizon(gr2, w, h);
   return { lum: +lum.toFixed(3), net: Math.round(net), horizon: hz ? hz.yh : null, inclinaison: hz ? hz.deg : null };
 }
 
@@ -603,7 +606,10 @@ async function iaApercu3D(base, pose, geo) {
   for (let y = 0; y < t.height; y++) for (let x = 0; x < t.width; x++) if (d[(y * t.width + x) * 4 + 3] > 20) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
   if (x1 <= x0 || y1 <= y0) { x0 = 0; y0 = 0; x1 = t.width - 1; y1 = t.height - 1; }
   const bw = geo.box.x1 - geo.box.x0, bh = geo.box.y1 - geo.box.y0, cw = x1 - x0 + 1, ch = y1 - y0 + 1;
-  const s = Math.min(bh / ch, bw * 1.15 / cw), dw = cw * s, dh = ch * s, dx = geo.ax - dw / 2;
+  // 23/11 : taille calée sur la largeur vue du produit (largeur et profondeur selon l angle de vue), aux cotes et à l échelle k ;
+  // avant, le calage sur la hauteur du cadre rapetissait les produits bas vus de haut (table basse 27 % trop petite).
+  const pr0 = PRODUITS[courant], th = theta * Math.PI / 180, lv = (+pr0.largeur_cm || 50) * Math.abs(Math.cos(th)) + (pose === "mur" ? 0 : (+pr0.profondeur_cm || 30) * Math.abs(Math.sin(th)));
+  const s = geo.k * lv / cw, dw = cw * s, dh = ch * s, dx = geo.ax - dw / 2;
   const dy = pose === "plafond" ? geo.box.y0 : pose === "mur" ? (geo.box.y0 + geo.box.y1) / 2 - dh / 2 : geo.box.y1 - dh;
   const c = document.createElement("canvas"); c.width = base.width; c.height = base.height; const g = c.getContext("2d"); g.drawImage(base, 0, 0);
   if (pose === "sol" || pose === "table") {
@@ -655,7 +661,7 @@ async function iaUnePhoto(photo, choix, vues, p, pose, numero, total) {
   if (retenu) { iaMention(retenu, "Image modifiée par IA"); ligneBilan.type = "ia"; return { url: retenu.toDataURL("image/jpeg", 0.9), ia: true }; }
   ligneBilan.type = "3d";
   const c = await iaApercu3D(base, pose, geo);
-  return { url: c.toDataURL("image/jpeg", 0.9), ia: false };
+  return { url: c.toDataURL("image/jpeg", 0.9), ia: false, indispo: !ia.sansIA && !ia.journal.some((l) => l.produit === p.id && l.photo === numero) && ligneBilan.raisons.some((r) => /^(serveur|réseau)/.test(r)) };
 }
 
 // File des photos : chacune passe par le toucher, la vérification puis l'IA, l'une après l'autre.
@@ -670,7 +676,7 @@ document.getElementById("iaFichier").addEventListener("change", (e) => {
 async function iaTraiterFile() {
   if (ia.occupe) return; ia.occupe = true;
   const p = PRODUITS[courant], pose = iaPose(p), bouton = document.getElementById("avecPhoto"); bouton.disabled = true;
-  let vues = null, numero = 0, apercus = 0, refus = 0;
+  let vues = null, numero = 0, apercus = 0, refus = 0, indispo = 0;
   try {
     while (ia.file.length) {
       const f = ia.file.shift(), total = numero + 1 + ia.file.length; numero++;
@@ -683,12 +689,15 @@ async function iaTraiterFile() {
         if (!vues) { iaEtat("Préparation des vues du produit…"); vues = await iaVuesProduit(); }
         const res = await iaUnePhoto(photo, choix, vues, p, pose, numero, total); ia.bilan.at(-1).qualite = qualite;
         if (!res.ia) apercus++;
+        if (res.indispo) indispo++;
         ia.resultats.push(res); afficherPile();
       } catch (err) { ia.bilan.push({ photo: numero, erreur: String(err.message || err).slice(0, 200) }); }
       finally { URL.revokeObjectURL(url); }
     }
   } finally { ia.occupe = false; bouton.disabled = false; }
-  iaEtat(apercus ? (apercus > 1 ? apercus + " photos" : "Une photo") + " : l'IA n'a pas donné un rendu assez fidèle, même après plusieurs essais. Vous voyez à la place notre modèle 3D posé à l'endroit choisi (« Aperçu 3D, sans IA »). Pour un rendu plus naturel, essayez une autre photo ou un autre endroit, ou « Voir chez moi »."
+  // 23/11 : service d'IA indisponible (réseau, quota du mois atteint) : on le dit tel quel, sans parler de fidélité.
+  iaEtat(indispo ? "Le service d'IA de ce prototype n'est pas disponible pour le moment. Vous voyez à la place notre modèle 3D posé à l'endroit choisi, à la taille estimée (« Aperçu 3D, sans IA »)."
+    : apercus ? (apercus > 1 ? apercus + " photos" : "Une photo") + " : l'IA n'a pas donné un rendu assez fidèle, même après plusieurs essais. Vous voyez à la place notre modèle 3D posé à l'endroit choisi (« Aperçu 3D, sans IA »). Pour un rendu plus naturel, essayez une autre photo ou un autre endroit, ou « Voir chez moi »."
     : refus ? "La photo n'a pas été envoyée : " + (ia.bilan.at(-1)?.raison || "elle ne convient pas") : "");
 }
 
