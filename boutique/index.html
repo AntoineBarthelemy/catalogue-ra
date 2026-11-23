@@ -7,7 +7,9 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap">
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }</script>
 <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.0.0/dist/model-viewer.min.js"></script>
+<script type="module">import { PoseurPhoto, focale35 } from "./photo3d.js"; window.Poseur = PoseurPhoto; window.focale35 = focale35;</script>
 <style>
 /* Mise en page : bandeau d'explication pour la boutique, puis une vraie fiche produit (vue 3D à gauche, achat à droite), puis l'offre en trois lignes. */
 :root {
@@ -77,7 +79,7 @@ label.btn { display: inline-block; }
 .rendu figcaption { position: absolute; left: 8px; bottom: 8px; font: 600 12px var(--f-texte); background: rgba(0,0,0,.62); color: #fff; padding: 4px 8px; border-radius: 6px; }
 .lignes b { display: block; font-size: 17px; margin-bottom: 4px; }
 p { margin: 0; }
-/* « Voir avec ma photo (IA) » : les photos du client avec le produit, en pile (un seul cadre) qui s'étale au clic. */
+/* « Voir avec ma photo » : les photos du client avec le produit, en pile (un seul cadre) qui s'étale au clic. */
 .ia-panneau { display: grid; gap: 10px; background: var(--surface); border: 1px solid var(--trait); border-radius: 12px; padding: 12px 14px; }
 .pile { position: relative; width: min(100%, 300px); aspect-ratio: 4 / 3; padding: 0; border: 0; background: transparent; cursor: pointer; justify-self: start; }
 .pile .carte { position: absolute; inset: 0; border-radius: 10px; overflow: hidden; background: var(--scene); border: 3px solid var(--surface); box-shadow: 0 2px 10px rgba(0,0,0,.18); transition: transform .35s ease; }
@@ -95,17 +97,11 @@ p { margin: 0; }
 .etalees figure { margin: 0; display: grid; gap: 6px; }
 .etalees .rendu img { max-height: none; }
 @media (prefers-reduced-motion: reduce) { .pile .carte { transition: none; } }
-/* Choix de l'endroit : la photo du client, un toucher (ou un petit rectangle) ; le cadre montre la place estimée du produit. */
-.zone-photo { position: relative; justify-self: center; max-width: 100%; touch-action: none; user-select: none; -webkit-user-select: none; cursor: crosshair; line-height: 0; }
-.zone-photo img { display: block; max-width: 100%; max-height: 55dvh; border-radius: 10px; -webkit-user-drag: none; pointer-events: none; }
-.zone-cadre { position: absolute; border: 2px dashed #fff; outline: 2px dashed rgba(0,0,0,.55); outline-offset: -4px; border-radius: 6px; pointer-events: none; }
-.zone-point { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(0,0,0,.55); pointer-events: none; }
-.zone-refus { display: grid; gap: 10px; background: var(--info-fond); color: var(--info); border-radius: 10px; padding: 12px 14px; }
-.dlg:has(.zone-refus:not([hidden])) .zone-photo img { max-height: 34dvh; } /* le message et ses 3 boutons restent visibles sur téléphone */
-/* 23/11 : le rond au coin du cadre agrandit ou réduit le produit d'un glissé, si la taille estimée ne va pas. */
-.zone-poignee { position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; background: #fff; border: 3px solid var(--accent); box-shadow: 0 1px 6px rgba(0,0,0,.45); cursor: nwse-resize; touch-action: none; }
-.zone-ajuste { display: grid; gap: 10px; }
-.dlg:has(.zone-ajuste:not([hidden])) .zone-photo img { max-height: 46dvh; }
+/* « Voir avec ma photo » : la photo du client, notre modèle 3D par-dessus (canevas transparent), déplaçable du doigt. */
+.pose-photo { position: relative; justify-self: center; max-width: 100%; touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer; line-height: 0; }
+.pose-photo img { display: block; max-width: 100%; max-height: 58dvh; border-radius: 10px; -webkit-user-drag: none; pointer-events: none; }
+.pose-3d { position: absolute; left: 0; top: 0; pointer-events: none; border-radius: 10px; }
+#poseOutils .btn.second { min-width: 48px; padding-inline: 14px; }
 /* Mention « prototype » (demande d'Antoine du 23/11) : courte et visible près du bouton IA. */
 .proto { display: inline-block; font: 600 12px var(--f-texte); background: var(--info-fond); color: var(--info); border-radius: 999px; padding: 4px 10px; justify-self: start; }
 .conseils { margin: 0; padding-left: 18px; font-size: 13px; color: var(--doux); display: grid; gap: 2px; }
@@ -142,18 +138,17 @@ p { margin: 0; }
       </div>
       <div class="boutons">
         <button class="btn" type="button" id="voir">Voir chez moi</button>
-        <button class="btn" type="button" id="avecPhoto">Voir avec ma photo (IA)</button>
+        <button class="btn" type="button" id="avecPhoto">Voir avec ma photo</button>
         <button class="btn second" type="button" id="panier">Ajouter au panier</button>
       </div>
       <p class="proto" id="proto">Prototype : version de démonstration, pas la version finale</p>
-      <p class="note" id="arAbsent" role="status" hidden>« Voir chez moi » s'ouvre sur un téléphone (iPhone ou Android, sans application). Ici, utilisez « Voir avec ma photo (IA) ».</p>
-      <p class="note" id="retour">Le bouton « Voir chez moi » pose le produit dans votre pièce avec la caméra du téléphone, à sa vraie taille. Avec « Voir avec ma photo (IA) », prenez une photo de chez vous et touchez l'endroit voulu : l'IA y met le produit, à l'échelle. Si l'un ne marche pas chez vous, l'autre prend le relais.</p>
+      <p class="note" id="arAbsent" role="status" hidden>« Voir chez moi » s'ouvre sur un téléphone (iPhone ou Android, sans application). Ici, utilisez « Voir avec ma photo ».</p>
+      <p class="note" id="retour">Le bouton « Voir chez moi » pose le produit dans votre pièce avec la caméra du téléphone, à sa vraie taille. Avec « Voir avec ma photo », prenez une photo de chez vous et touchez l'endroit voulu : le produit y apparaît, à sa taille réelle. Si l'un ne marche pas chez vous, l'autre prend le relais.</p>
       <div class="ia-panneau" id="iaAvis" hidden>
-        <p class="note">Vos photos et des vues du produit sont envoyées à notre service d'IA (OpenAI), qui met le produit dans vos photos. Nous ne gardons aucune photo ; OpenAI peut la garder jusqu'à 30 jours pour lutter contre les abus. Chaque image obtenue porte la mention « Image modifiée par IA ». Une photo, un toucher sur l'endroit voulu, puis environ 30 secondes (parfois plus : chaque image est vérifiée et refaite si le produit n'est pas fidèle). Jusqu'à 4 photos.</p>
+        <p class="note">Prenez une photo de votre pièce, touchez l'endroit voulu : notre modèle 3D du produit y apparaît, à sa taille réelle, posé au sol ou accroché au mur, avec son ombre. Glissez-le du doigt pour le déplacer, tournez-le, puis gardez l'image. Votre photo est analysée sur votre téléphone et n'est envoyée nulle part. Jusqu'à 4 photos.</p>
         <ul class="conseils" aria-label="Conseils pour un bon rendu">
-          <li>Touchez un endroit libre : un mur dégagé, un sol ou une table sans objet dessus.</li>
-          <li>Rendent le mieux : miroirs et tableaux au mur, luminaires, plantes, objets de déco, petits meubles dans un espace libre.</li>
-          <li>Pour un grand meuble, photographiez la pièce debout, à 2 ou 3 mètres, en prenant le sol.</li>
+          <li>Photographiez debout, téléphone à hauteur de poitrine, en prenant un peu de sol.</li>
+          <li>Touchez un endroit libre : le sol, un mur dégagé, le dessus d'une table.</li>
         </ul>
         <div><label class="btn" for="iaFichier">Prendre ou choisir des photos</label><input class="fichier" type="file" id="iaFichier" accept="image/*" multiple></div>
       </div>
@@ -168,27 +163,26 @@ p { margin: 0; }
     <h2 id="t-offre">Ces boutons sur vos fiches produit</h2>
     <div class="lignes">
       <div><b>30 € par modèle</b><p>Fait d'après vos photos et vos cotes, au centimètre. Vous le validez avant la mise en ligne.</p></div>
-      <div><b>19 € par mois</b><p>Hébergement, boutons « Voir chez moi » et « Voir avec ma photo (IA) » sur vos fiches, et 2 nouveaux modèles chaque mois.</p></div>
+      <div><b>19 € par mois</b><p>Hébergement, boutons « Voir chez moi » et « Voir avec ma photo » sur vos fiches, et 2 nouveaux modèles chaque mois.</p></div>
       <div><b>Premier modèle offert</b><p>Choisissez un de vos produits : nous le modélisons gratuitement pour que vous jugiez sur pièce.</p></div>
-      <div><b>Tous vos produits</b><p>Meubles, luminaires, miroirs, plantes, objets de déco : chaque modèle 3D est fait par nous aux cotes exactes. Dans les photos du client, seule la zone touchée est retouchée, et chaque image est vérifiée : si l'IA a changé le produit, elle recommence. Tout est en français, du bouton à l'assistance.</p></div>
+      <div><b>Tous vos produits</b><p>Meubles, luminaires, miroirs, plantes, objets de déco : chaque modèle 3D est fait par nous aux cotes exactes. Dans les photos du client, c'est ce même modèle qui apparaît : le produit est exact, rien n'est inventé. Tout est en français, du bouton à l'assistance.</p></div>
       <div><b>Aucune installation</b><p>Une ligne à coller dans votre fiche produit (Shopify, PrestaShop, WooCommerce ou site sur mesure).</p></div>
     </div>
   </section>
 </main>
-<footer><div class="cadre">Modèles 3D de cette démonstration : Poly Haven (polyhaven.com), licence CC0, utilisables librement. Aucune image de votre pièce n'est enregistrée par nous ; elle n'est envoyée que si vous utilisez « Voir avec ma photo (IA) ».<br>© 2026 Antoine Barthélémy. Tous droits réservés.</div></footer>
+<footer><div class="cadre">Modèles 3D de cette démonstration : Poly Haven (polyhaven.com), licence CC0, utilisables librement. Aucune image de votre pièce n'est enregistrée ni envoyée : « Voir avec ma photo » l'analyse sur votre téléphone (analyse de profondeur Depth Anything V2 Small, licence Apache 2.0).<br>© 2026 Antoine Barthélémy. Tous droits réservés.</div></footer>
 
-<dialog id="dlgZone" aria-labelledby="tZone">
+<dialog id="dlgPose" aria-labelledby="tPose">
   <div class="dlg">
-    <div class="dlg-tete"><h2 id="tZone">Touchez l'endroit voulu</h2><button class="fermer" type="button" id="zoneFermer" aria-label="Fermer">×</button></div>
-    <p class="note" id="zoneConsigne"></p>
-    <div class="zone-photo" id="zonePhoto"><img id="zoneImg" alt="Votre photo : touchez l'endroit où mettre le produit"><span class="zone-cadre" id="zoneCadre" hidden></span><span class="zone-point" id="zonePoint" hidden></span><span class="zone-poignee" id="zonePoignee" role="slider" aria-label="Taille du produit : faites glisser pour agrandir ou réduire" hidden></span></div>
-    <div class="zone-ajuste" id="zoneAjuste" hidden>
-      <p class="note" id="zoneAjusteTxt">Le cadre pointillé montre la taille du produit à cet endroit. Trop petit ou trop grand ? Faites glisser le rond blanc.</p>
-      <div class="boutons"><button class="btn" type="button" id="zoneCreer">Créer l'image</button></div>
-    </div>
-    <div class="zone-refus" id="zoneRefus" role="alert" hidden>
-      <p id="zoneMsg"></p>
-      <div class="boutons"><button class="btn" type="button" id="zoneAutreEndroit">Toucher un autre endroit</button><label class="btn second" for="iaFichier" id="zoneAutrePhoto">Prendre une autre photo</label><button class="btn second" type="button" id="zoneVoirChezMoi">Voir chez moi</button></div>
+    <div class="dlg-tete"><h2 id="tPose">Dans votre pièce</h2><button class="fermer" type="button" id="poseFermer" aria-label="Fermer">×</button></div>
+    <p class="note" id="poseEtat" role="status"></p>
+    <div class="pose-photo" id="posePhoto"><img id="poseImg" alt="Votre photo : touchez l'endroit où mettre le produit"></div>
+    <div class="boutons" id="poseOutils" hidden>
+      <button class="btn second" type="button" id="poseGauche" aria-label="Tourner vers la gauche">↺</button>
+      <button class="btn second" type="button" id="poseDroite" aria-label="Tourner vers la droite">↻</button>
+      <button class="btn second" type="button" id="poseMoins" aria-label="Un peu plus petit">−</button>
+      <button class="btn second" type="button" id="posePlus" aria-label="Un peu plus grand">+</button>
+      <button class="btn" type="button" id="poseGarder">Garder cette image</button>
     </div>
   </div>
 </dialog>
@@ -202,7 +196,7 @@ p { margin: 0; }
 </dialog>
 
 <script>
-const PRODUITS = [{"id":"miroir-dore-baroque","rayon":"Déco","categorie":"miroir mural, accroché au mur","nom":"Miroir Apolline, cadre doré","largeur_cm":49,"profondeur_cm":3,"hauteur_cm":74,"prix":"159 €","texte":"Cadre sculpté doré à la feuille, style baroque. À accrocher au mur, au-dessus d’une console ou d’une cheminée.","source":"ornate_mirror_01","pose":"mur","glb":"modeles/miroir-dore-baroque.glb"},{"id":"suspension-laiton","rayon":"Luminaires","categorie":"suspension, luminaire accroché au plafond","nom":"Suspension Lucien, laiton","largeur_cm":43,"profondeur_cm":43,"hauteur_cm":95,"prix":"219 €","texte":"Abat-jour en métal, finition laiton, câble textile. Hauteur réglable, à suspendre au-dessus d’une table.","source":"modern_ceiling_lamp_01","pose":"plafond","glb":"modeles/suspension-laiton.glb"},{"id":"vase-ceramique","rayon":"Déco","categorie":"vase à poser sur une table ou un meuble","nom":"Vase Jeanne, céramique émaillée","largeur_cm":22,"profondeur_cm":22,"hauteur_cm":31,"prix":"45 €","texte":"Céramique émaillée faite main. À poser sur une table, une console ou une étagère.","source":"ceramic_vase_02","pose":"table","glb":"modeles/vase-ceramique.glb"},{"id":"plante-pot-terre-cuite","rayon":"Déco","categorie":"plante en pot, posée au sol","nom":"Plante Rosa, pot en terre cuite","largeur_cm":70,"profondeur_cm":66,"hauteur_cm":84,"prix":"89 €","texte":"Plante d intérieur au feuillage dense, dans un pot en terre cuite. À poser au sol, près d’une fenêtre.","source":"potted_plant_02","pose":"sol","glb":"modeles/plante-pot-terre-cuite.glb"},{"id":"table-basse-beton-chene","rayon":"Salon","nom":"Table basse Basile, béton et chêne","largeur_cm":120,"profondeur_cm":60,"hauteur_cm":39,"prix":"490 €","texte":"Plateau effet béton, angles incrustés et piètement traîneau en chêne massif.","source":"modern_coffee_table_01","categorie":"table basse","pose":"sol","glb":"modeles/table-basse-beton-chene.glb"},{"id":"canape-capitonne-cuir","rayon":"Salon","nom":"Canapé Émile 2 places, cuir capitonné","largeur_cm":181,"profondeur_cm":82,"hauteur_cm":71,"prix":"1 690 €","texte":"Dossier capitonné, cuir noir patiné, pieds galbés en bois foncé.","source":"sofa_02","categorie":"assise","pose":"sol","glb":"modeles/canape-capitonne-cuir.glb"},{"id":"fauteuil-chene-cuir","rayon":"Salon","nom":"Fauteuil Odile, chêne et cuir noir","largeur_cm":82,"profondeur_cm":99,"hauteur_cm":102,"prix":"690 €","texte":"Structure en chêne massif, coussins en cuir pleine fleur noir, accoudoirs en bois.","source":"modern_arm_chair_01","categorie":"assise","pose":"sol","glb":"modeles/fauteuil-chene-cuir.glb"},{"id":"fauteuil-pivotant-cuir","rayon":"Salon","nom":"Fauteuil pivotant Mila, cuir cognac","largeur_cm":101,"profondeur_cm":119,"hauteur_cm":117,"prix":"1 150 €","texte":"Coque en bois moulé, assise en cuir cognac capitonné, pied étoile pivotant en métal chromé.","source":"mid_century_lounge_chair","categorie":"assise","pose":"sol","glb":"modeles/fauteuil-pivotant-cuir.glb"},{"id":"enfilade-noyer-cannage","rayon":"Rangement","nom":"Enfilade Lison, noyer et lattes","largeur_cm":244,"profondeur_cm":52,"hauteur_cm":68,"prix":"1 290 €","texte":"Placage noyer, plateau en pierre claire, deux portes à lattes de bois, pieds en métal noir. Grand rangement pour le salon ou la salle à manger.","source":"modern_wooden_cabinet","categorie":"meuble de rangement","pose":"sol","glb":"modeles/enfilade-noyer-cannage.glb"}];
+const PRODUITS = [{"id":"miroir-dore-baroque","rayon":"Déco","categorie":"miroir mural, accroché au mur","nom":"Miroir Apolline, cadre doré","largeur_cm":49,"profondeur_cm":3,"hauteur_cm":74,"prix":"159 €","texte":"Cadre sculpté doré à la feuille, style baroque. À accrocher au mur, au-dessus d’une console ou d’une cheminée.","source":"ornate_mirror_01","pose":"mur","glb":"modeles/miroir-dore-baroque.glb"},{"id":"vase-ceramique","rayon":"Déco","categorie":"vase à poser sur une table ou un meuble","nom":"Vase Jeanne, céramique émaillée","largeur_cm":22,"profondeur_cm":22,"hauteur_cm":31,"prix":"45 €","texte":"Céramique émaillée faite main. À poser sur une table, une console ou une étagère.","source":"ceramic_vase_02","pose":"table","glb":"modeles/vase-ceramique.glb"},{"id":"plante-pot-terre-cuite","rayon":"Déco","categorie":"plante en pot, posée au sol","nom":"Plante Rosa, pot en terre cuite","largeur_cm":70,"profondeur_cm":66,"hauteur_cm":84,"prix":"89 €","texte":"Plante d intérieur au feuillage dense, dans un pot en terre cuite. À poser au sol, près d’une fenêtre.","source":"potted_plant_02","pose":"sol","glb":"modeles/plante-pot-terre-cuite.glb"},{"id":"suspension-laiton","rayon":"Luminaires","categorie":"suspension, luminaire accroché au plafond","nom":"Suspension Lucien, laiton","largeur_cm":43,"profondeur_cm":43,"hauteur_cm":95,"prix":"219 €","texte":"Abat-jour en métal, finition laiton, câble textile. Hauteur réglable, à suspendre au-dessus d’une table.","source":"modern_ceiling_lamp_01","pose":"plafond","glb":"modeles/suspension-laiton.glb"}];
 const vue = document.getElementById("vue");
 const vign = document.getElementById("vignettes");
 let courant = 0;
@@ -230,25 +224,18 @@ document.getElementById("voir").addEventListener("click", () => {
   if (vue.canActivateAR) vue.activateAR(); else document.getElementById("arAbsent").hidden = false;
 });
 
-// 2) « Voir avec ma photo (IA) » (directives d'Antoine du 21/11 et du 22/11) : le client prend une photo, TOUCHE l'endroit
-// où il veut le produit (ou trace un petit rectangle), la page vérifie d'abord que c'est possible (cotes, zone, type de
-// pose, netteté et largeur de la photo) sans dépenser d'appel ; puis la photo part à l'IA avec un masque (seule la zone
-// touchée peut changer), deux vues du produit tirées de notre modèle 3D et ses cotes. Chaque rendu est contrôlé ; s'il
-// n'est pas fidèle, l'IA recommence (4 essais au plus). En dernier recours, notre modèle 3D est posé à l'endroit touché,
-// présenté honnêtement comme « Aperçu 3D, sans IA » : le client a toujours une image. Une photo = un rendu dans la pile.
-const SERVEUR_IA = "https://catalogue-ra-photo.antoinebarthelemy60.workers.dev";
+// 2) « Voir avec ma photo » (nouveau système, directive d'Antoine du 23/11/2026, soir) : la photo est analysée SUR le
+// téléphone (profondeur de la pièce : sol, murs, plafond), le client touche un endroit et notre vrai modèle 3D y apparaît
+// directement, à sa taille, posé au sol ou accroché au mur, avec ombre et lumière tirées de la photo. Il le glisse et le
+// tourne du doigt. Aucune IA générative : rien n'est inventé, la photo ne quitte pas le téléphone. Code : photo3d.js.
 const MAX_PHOTOS = 4;
-const ia = { resultats: [], journal: [], bilan: [], essaisMax: 4, file: [], occupe: false, zoneAuto: null, sansIA: false };
+const ia = { resultats: [], bilan: [], file: [], occupe: false };
 function iaEtat(t) { const p = document.getElementById("iaEtat"); p.textContent = t; p.hidden = !t; }
 document.getElementById("avecPhoto").addEventListener("click", () => {
   const avis = document.getElementById("iaAvis"); avis.hidden = false; avis.scrollIntoView({ block: "nearest", behavior: "smooth" });
 });
-const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
 const image = (src) => new Promise((ok, ko) => { const im = new Image(); im.onload = () => ok(im); im.onerror = ko; im.src = src; });
-const enBlob = (c, type = "image/png", q) => new Promise((r) => c.toBlob(r, type, q));
 const borne = (v, a, b) => Math.min(b, Math.max(a, v));
-
-// Type de pose : champ « pose » du produit, sinon deviné d'après sa catégorie (vaut pour n'importe quel produit).
 function iaPose(p) {
   if (["sol", "mur", "table", "plafond"].includes(p.pose)) return p.pose;
   const c = ((p.categorie || "") + " " + (p.nom || "")).toLowerCase();
@@ -257,448 +244,67 @@ function iaPose(p) {
   if (/(sur une table|à poser|lampe de table|lampe à poser|bougeoir|vase|cadre photo)/.test(c)) return "table";
   return "sol";
 }
-const POSE_TXT = { sol: "au sol, là où il doit être posé", mur: "sur le mur, là où il doit être accroché", table: "sur la table ou le meuble, là où il doit être posé", plafond: "au plafond, là où il doit être suspendu" };
+const POSE_TXT = { sol: "Touchez le sol, là où le produit doit être posé.", mur: "Touchez le mur, là où le produit doit être accroché.", table: "Touchez le dessus d'une table, d'une console ou d'une étagère.", plafond: "Touchez le plafond, ou la table au-dessus de laquelle la suspension doit pendre." };
 
-// Deux vues du produit sur fond blanc, prises dans notre modèle 3D (les vraies formes et couleurs du produit).
-async function iaVuesProduit() {
-  const orbite = vue.cameraOrbit, vues = [];
-  try {
-    for (const o of ["-30deg 75deg auto", "0deg 88deg auto"]) {
-      vue.cameraOrbit = o; vue.jumpCameraToGoal(); await attendre(450);
-      const im = await createImageBitmap(await vue.toBlob({ mimeType: "image/png", idealAspect: true }));
-      const c = document.createElement("canvas"); const k = Math.min(1, 1024 / Math.max(im.width, im.height));
-      c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
-      const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
-      vues.push({ c, couleurs: iaHistogramme(g.getImageData(0, 0, c.width, c.height).data, true) });
-    }
-  } finally { vue.cameraOrbit = orbite; vue.jumpCameraToGoal(); }
-  return vues;
-}
-
-// Taille envoyée à l'IA : même forme que la photo (rien n'est étiré), côté long 1536, multiples de 16.
-function iaTaille(w, h) {
-  const k = 1536 / Math.max(w, h);
-  return [Math.max(512, Math.round(w * k / 16) * 16), Math.max(512, Math.round(h * k / 16) * 16)];
-}
-
-// Couleurs d'une zone : histogramme teinte et saturation (12 teintes x 2 saturations + gris clair, moyen, foncé).
-function iaHistogramme(d, sansBlanc, masque) {
-  const h = new Float64Array(27); let n = 0;
-  for (let i = 0, j = 0; i < d.length; i += 4, j++) {
-    if (masque && !masque[j]) continue;
-    const r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), s = mx ? (mx - mn) / mx : 0;
-    if (sansBlanc && mx > 0.97 && s < 0.04) continue;
-    let k;
-    if (s < 0.18) k = 24 + (mx > 0.66 ? 0 : mx > 0.33 ? 1 : 2);
-    else { let t = mx === r ? (g - b) / (mx - mn) : mx === g ? 2 + (b - r) / (mx - mn) : 4 + (r - g) / (mx - mn); t = (t * 60 + 360) % 360; k = Math.floor(t / 30) * 2 + (s > 0.5 ? 1 : 0); }
-    h[k]++; n++;
-  }
-  if (n) for (let k = 0; k < 27; k++) h[k] /= n;
-  return h;
-}
-const iaRessemblance = (a, b) => { let s = 0; for (let k = 0; k < a.length; k++) s += Math.sqrt(a[k] * b[k]); return s; };
-
-// Place estimée du produit dans la photo (en pixels), d'après les cotes, la pose et l'endroit touché.
-// Perspective simple : appareil tenu à 1,30 m, focale d'un téléphone (0,8 x côté long), horizon vers 40 % de la hauteur ;
-// échelle bornée entre un produit à 1,2 m et à 6 m. Un rectangle tracé par le client donne directement l'échelle.
-// 23/11 (échelle, retour d'Antoine) : si la photo est nettement plongeante (téléphone penché d'au moins 12 degrés vers le
-// sol, mesuré par iaHorizon), on prend l'horizon mesuré, plus haut : avant, le produit au sol sortait trop petit. Et si le
-// client a agrandi ou réduit le cadre d'un glissé, z.s multiplie l'échelle.
-const HZ_DEFAUT = 0.4, HZ_PLONGEE_MIN = 12;
-function iaGeometrie(W, H, p, pose, z) {
-  const L = Math.max(W, H), f = 0.8 * L;
-  const mesure = (pose === "sol" || pose === "table") && z.yh != null && z.deg >= HZ_PLONGEE_MIN;
-  const yh = (mesure ? Math.max(-0.5, Math.min(HZ_DEFAUT, z.yh)) : HZ_DEFAUT) * H;
-  const l = +p.largeur_cm || 50, pr = +p.profondeur_cm || 30, h = +p.hauteur_cm || 50;
-  const rect = z.x1 != null;
-  const ax = (rect ? (z.x0 + z.x1) / 2 : z.x) * W;
-  const ay = (rect ? (pose === "sol" || pose === "table" ? z.y1 : pose === "plafond" ? z.y0 : (z.y0 + z.y1) / 2) : z.y) * H;
-  const dep = Math.atan2(Math.max(0, ay - yh), f);
-  const largeurVue = l + (pose === "mur" ? 0 : pr * 0.35), hauteurVue = h + (pose === "sol" || pose === "table" ? pr * Math.sin(dep) : 0);
-  let k;
-  if (rect) k = Math.min((z.x1 - z.x0) * W / largeurVue, (z.y1 - z.y0) * H / hauteurVue);
-  else k = pose === "sol" ? (ay - yh) / 130 : pose === "table" ? (ay - yh) / 55 : pose === "plafond" ? (yh - ay) / 120 : f / 300;
-  // Horizon mal deviné (photo plongeante, appareil bas) : le calcul donnerait un produit à plus de 4,5 m ; on prend 3 m.
-  if (!rect && !mesure && k < f / 450) k = f / 300;
-  k = borne(k, f / 600, f / 120);
-  if (!rect && z.s) k *= borne(z.s, 0.33, 3); // taille ajustée par le client (glissé du rond du cadre)
-  const bw = largeurVue * k, bh = hauteurVue * k;
-  let y0, y1;
-  if (pose === "sol" || pose === "table") { y1 = ay + pr * Math.sin(dep) * k * 0.5; y0 = y1 - bh; }
-  else if (pose === "plafond") { y0 = ay; y1 = ay + bh; }
-  else { y0 = ay - bh / 2; y1 = ay + bh / 2; }
-  const box = { x0: ax - bw / 2, y0, x1: ax + bw / 2, y1 };
-  // Masque : la place du produit, avec une marge (ombre au sol, reflets), dans la photo.
-  // Marges resserrées le 22/11 (avant : 22 % sur les côtés, 15 % au-dessus) : sur 20 vrais rendus, l IA effaçait souvent les objets du client
-  // pris dans la marge (table basse, cheminée, tapis, sapin). Le produit qui dépasse est recollé quand même (débord, iaControler).
-  const m = 0.01 * L, bas = pose === "sol" || pose === "table" ? 0.2 * bh : 0.1 * bh;
-  const masque = { x0: borne(box.x0 - 0.08 * bw - m, 0, W), y0: borne(box.y0 - 0.06 * bh - m, 0, H), x1: borne(box.x1 + 0.08 * bw + m, 0, W), y1: borne(box.y1 + bas + m, 0, H) };
-  return { k, ax, ay, dep, box, masque, W, H, pose, yh, mesure };
-}
-
-// Qualité de la photo : luminosité moyenne et netteté (variance du laplacien sur 4 x 4 cases ; on garde la case la plus
-// nette, pour qu'un fond flou voulu ne fasse pas refuser une photo nette au premier plan).
-function iaQualite(src) {
-  const n = 384, k = n / Math.max(src.width, src.height), w = Math.max(8, Math.round(src.width * k)), h = Math.max(8, Math.round(src.height * k));
-  const c = document.createElement("canvas"); c.width = w; c.height = h; const g = c.getContext("2d"); g.drawImage(src, 0, 0, w, h);
-  const d = g.getImageData(0, 0, w, h).data, gr = new Float32Array(w * h); let lum = 0;
-  for (let i = 0, j = 0; i < d.length; i += 4, j++) { gr[j] = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]; lum += gr[j]; }
-  lum /= w * h * 255;
-  const s = new Float64Array(16), s2 = new Float64Array(16), nb = new Float64Array(16);
-  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
-    const j = y * w + x, v = 4 * gr[j] - gr[j - 1] - gr[j + 1] - gr[j - w] - gr[j + w], t = Math.min(3, (y * 4 / h) | 0) * 4 + Math.min(3, (x * 4 / w) | 0);
-    s[t] += v; s2[t] += v * v; nb[t]++;
-  }
-  let net = 0; for (let t = 0; t < 16; t++) if (nb[t]) net = Math.max(net, s2[t] / nb[t] - (s[t] / nb[t]) ** 2);
-  // Horizon : réduction de bonne qualité à part (la réduction rapide ci-dessus crée des contours parasites qui faussent la pente des verticales).
-  const c2 = document.createElement("canvas"); c2.width = w; c2.height = h; const g2 = c2.getContext("2d"); g2.imageSmoothingEnabled = true; g2.imageSmoothingQuality = "high"; g2.drawImage(src, 0, 0, w, h);
-  const d2 = g2.getImageData(0, 0, w, h).data, gr2 = new Float32Array(w * h); for (let i = 0, j = 0; i < d2.length; i += 4, j++) gr2[j] = 0.299 * d2[i] + 0.587 * d2[i + 1] + 0.114 * d2[i + 2];
-  const hz = iaHorizon(gr2, w, h);
-  return { lum: +lum.toFixed(3), net: Math.round(net), horizon: hz ? hz.yh : null, inclinaison: hz ? hz.deg : null };
-}
-
-// Horizon de la photo (ajout du 23/11, problème d'échelle vu par Antoine : un canapé trop petit à côté du sien).
-// Avant, l'horizon était supposé à 40 % de la hauteur. Or on photographie souvent sa pièce téléphone penché vers le sol :
-// l'horizon est alors bien plus haut (parfois hors de la photo) et le produit sortait trop petit (jusqu'à 30 % de moins).
-// On mesure l'inclinaison du téléphone sur la photo elle-même : les verticales de la pièce (montants de porte, angles de
-// murs, pieds de meubles, rideaux) se rapprochent vers le bas quand le téléphone penche vers le sol, vers le haut quand il
-// vise le plafond. Pente des contours presque verticaux en fonction de l'écart au centre, ajustée par moindres carrés
-// pondérés et robustes ; on en déduit l'inclinaison, puis l'horizon. Renvoie null si la photo a trop peu de verticales.
-function iaHorizon(gr, w, h) {
-  const cx = (w - 1) / 2, cy = (h - 1) / 2, f = 0.8 * Math.max(w, h);
-  const P = [];
-  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
-    const dx = x - cx; if (Math.abs(dx) < 0.12 * w) continue;
-    const j = y * w + x;
-    const gx = gr[j - w + 1] + 2 * gr[j + 1] + gr[j + w + 1] - gr[j - w - 1] - 2 * gr[j - 1] - gr[j + w - 1];
-    const gy = gr[j + w - 1] + 2 * gr[j + w] + gr[j + w + 1] - gr[j - w - 1] - 2 * gr[j - w] - gr[j - w + 1];
-    const m = Math.abs(gx) + Math.abs(gy);
-    if (m < 90 || Math.abs(gy) > 0.3 * Math.abs(gx)) continue;
-    P.push(dx, y, -gy / gx, m);
-  }
-  const n = P.length / 4; if (n < 200) return null;
-  let a = 0, b = 0, lim = 1;
-  for (let it = 0; it < 4; it++) {
-    let sw = 0, sx = 0, ss = 0, sxx = 0, sxs = 0; const res = [];
-    for (let i = 0; i < P.length; i += 4) {
-      const r = Math.abs(P[i + 2] - a - b * P[i]); if (r > lim) continue;
-      const wt = P[i + 3]; sw += wt; sx += wt * P[i]; ss += wt * P[i + 2]; sxx += wt * P[i] * P[i]; sxs += wt * P[i] * P[i + 2];
-    }
-    const d = sw * sxx - sx * sx; if (!sw || !d) return null;
-    b = (sw * sxs - sx * ss) / d; a = (ss - b * sx) / sw;
-    for (let i = 0; i < P.length; i += 4) res.push(Math.abs(P[i + 2] - a - b * P[i]));
-    res.sort((u, v) => u - v); lim = Math.max(0.02, 2.5 * res[res.length >> 1]);
-  }
-  let sw = 0, sy = 0; for (let i = 0; i < P.length; i += 4) if (Math.abs(P[i + 2] - a - b * P[i]) <= lim) { sw += P[i + 3]; sy += P[i + 3] * P[i + 1]; }
-  const ym = sy / sw;
-  // Les verticales passent par un point de fuite (cx, yV) : pente = -(x - cx) / (yV - y), donc b = -1 / (yV - ym).
-  const t = borne(f * b / (b * (ym - cy) - 1), -0.3, 1.2); // tangente de l'inclinaison vers le sol
-  return { yh: +((cy - f * t) / h).toFixed(3), deg: +(Math.atan(t) * 180 / Math.PI).toFixed(1), n };
-}
-// Seuils de la vérification (réglés le 22/11 sur les 21 photos d'essai : aucune bonne photo refusée).
-const VERIF_COTE_MIN = 480, VERIF_LUM_MIN = 0.07, VERIF_NET_MIN = 60;
-
-// Vérification AVANT l'appel à l'IA : renvoie { ok } ou { ok: false, raison } (texte clair pour le client).
-function iaVerifier(photo, qualite, p, pose, z) {
-  const W = photo.naturalWidth || photo.width, H = photo.naturalHeight || photo.height;
-  if (Math.min(W, H) < VERIF_COTE_MIN) return { ok: false, code: "petite", raison: "Cette photo est trop petite pour un bon résultat. Prenez-la directement avec l'appareil photo du téléphone." };
-  if (qualite.lum < VERIF_LUM_MIN) return { ok: false, code: "sombre", raison: "Cette photo est trop sombre. Allumez la lumière ou ouvrez les volets, puis reprenez-la." };
-  if (qualite.net < VERIF_NET_MIN) return { ok: false, code: "floue", raison: "Cette photo est floue. Tenez le téléphone immobile un instant et reprenez-la." };
-  const yz = z.x1 != null ? (pose === "plafond" ? z.y0 : pose === "mur" ? (z.y0 + z.y1) / 2 : z.y1) : z.y;
-  if (pose === "sol" && yz < 0.3) return { ok: false, code: "pose", raison: "Vous avez touché le haut de la photo, sans doute le mur ou le plafond. Ce produit se pose au sol : touchez le sol, là où il doit être." };
-  if (pose === "plafond" && yz > 0.45) return { ok: false, code: "pose", raison: "Ce luminaire se suspend au plafond : touchez le plafond, au-dessus de l'endroit voulu. Si le plafond n'est pas sur la photo, reprenez-la en visant plus haut." };
-  if (pose === "mur" && yz > 0.88) return { ok: false, code: "pose", raison: "Vous avez touché tout en bas de la photo, sans doute le sol. Ce produit s'accroche au mur : touchez le mur, là où il doit être." };
-  const geo = iaGeometrie(W, H, p, pose, z), b = geo.box, bw = b.x1 - b.x0, bh = b.y1 - b.y0;
-  if (bw > 0.92 * W || bh > 0.92 * H) return { ok: false, code: "large", geo, raison: `À cet endroit, le produit (${p.largeur_cm} x ${p.hauteur_cm} cm) ne tient pas dans la photo. Reculez pour prendre la pièce plus large, ou touchez un endroit plus loin.` };
-  const dedans = (Math.min(b.x1, W) - Math.max(b.x0, 0)) * (Math.min(b.y1, H) - Math.max(b.y0, 0)) / (bw * bh);
-  if (dedans < 0.88) return { ok: false, code: "bord", geo, raison: "À cet endroit, le produit dépasserait du bord de la photo. Touchez un peu plus vers le centre, ou prenez une photo plus large." };
-  return { ok: true, geo };
-}
-
-// Choix de l'endroit : la photo s'affiche, le client touche (ou trace un petit rectangle). Renvoie la zone (fractions de
-// la photo) une fois la vérification passée, ou null si le client ferme, change de photo ou choisit « Voir chez moi ».
-function iaChoisirZone(url, photo, qualite, p, pose, numero, total) {
-  if (ia.zoneAuto) { // essais automatiques : zone donnée d'avance, même vérification
-    const z = { yh: qualite.horizon, deg: qualite.inclinaison, ...ia.zoneAuto }, v = iaVerifier(photo, qualite, p, pose, z);
-    return Promise.resolve(v.ok ? { z, v } : { refus: v });
-  }
-  const dlg = document.getElementById("dlgZone"), img = document.getElementById("zoneImg"), cadre = document.getElementById("zoneCadre"), point = document.getElementById("zonePoint");
-  const refus = document.getElementById("zoneRefus"), zp = document.getElementById("zonePhoto");
-  document.getElementById("tZone").textContent = total > 1 ? `Photo ${numero} sur ${total} : touchez l'endroit voulu` : "Touchez l'endroit voulu";
-  document.getElementById("zoneConsigne").textContent = `Touchez un endroit libre de votre photo, ${POSE_TXT[pose]} (${p.nom.split(",")[0]}, ${p.largeur_cm} x ${p.profondeur_cm} x ${p.hauteur_cm} cm). Évitez de toucher un meuble ou un objet déjà là : l'IA risquerait de l'effacer.`;
-  const poignee = document.getElementById("zonePoignee"), ajuste = document.getElementById("zoneAjuste"), creer = document.getElementById("zoneCreer");
-  img.src = url; cadre.hidden = true; point.hidden = true; refus.hidden = true; poignee.hidden = true; ajuste.hidden = true;
-  // 23/11 (échelle) : après le toucher, le cadre montre la taille estimée du produit. Si elle convient, l'image se crée
-  // seule au bout de 4 secondes (une photo, un toucher). Sinon, le client fait glisser le rond au coin du cadre pour
-  // agrandir ou réduire le produit (en le comparant à un meuble de sa photo), puis touche « Créer l'image ».
-  const W = photo.naturalWidth, H = photo.naturalHeight, DELAI = 4;
-  const hz = { yh: qualite.horizon, deg: qualite.inclinaison };
-  return new Promise((fin) => {
-    let debut = null, fini = false, choix = null, taille = null, minuterie = null, dernier = null;
-    const pos = (e) => { const r = img.getBoundingClientRect(); return { x: borne((e.clientX - r.left) / r.width, 0, 1), y: borne((e.clientY - r.top) / r.height, 0, 1), r }; };
-    const montrerCadre = (b) => { const s = cadre.style; s.left = (b.x0 / W * 100) + "%"; s.top = (b.y0 / H * 100) + "%"; s.width = ((b.x1 - b.x0) / W * 100) + "%"; s.height = ((b.y1 - b.y0) / H * 100) + "%"; cadre.hidden = false; };
-    // Point fixe (là où le produit s'appuie) et coin du cadre qui porte le rond.
-    const reperes = (g) => { const b = g.box; return { A: { x: g.ax, y: pose === "plafond" ? b.y0 : pose === "mur" ? (b.y0 + b.y1) / 2 : b.y1 }, C: { x: b.x1, y: pose === "plafond" ? b.y1 : b.y0 } }; };
-    const montrerPoignee = (g) => { const { C } = reperes(g); poignee.style.left = (borne(C.x / W, 0, 1) * 100) + "%"; poignee.style.top = (borne(C.y / H, 0, 1) * 100) + "%"; poignee.hidden = false; };
-    const arreterMinuterie = () => { if (minuterie) { clearInterval(minuterie); minuterie = null; } creer.textContent = "Créer l'image"; };
-    const terminer = (v) => { if (fini) return; fini = true; arreterMinuterie(); zp.removeEventListener("pointerdown", bas); zp.removeEventListener("pointermove", bouge); zp.removeEventListener("pointerup", haut); dlg.removeEventListener("close", ferme); if (dlg.open) dlg.close(); fin(v); };
-    const proposer = (z, v) => { // le cadre est bon : on montre l'ajustement et le compte à rebours
-      choix = { z, v }; montrerCadre(v.geo.box); refus.hidden = true; ajuste.hidden = false;
-      if (z.x1 == null) montrerPoignee(v.geo); else poignee.hidden = true;
-      arreterMinuterie(); let reste = DELAI; creer.textContent = `Créer l'image (${reste})`;
-      minuterie = setInterval(() => { reste--; if (reste <= 0) { arreterMinuterie(); terminer(choix); } else creer.textContent = `Créer l'image (${reste})`; }, 1000);
-    };
-    const verifier = (z) => {
-      if (z.x1 == null) dernier = z;
-      const v = iaVerifier(photo, qualite, p, pose, z);
-      ia.bilan.push({ photo: numero, zone: z, verification: v.ok ? "ok" : v.code });
-      if (v.geo) montrerCadre(v.geo.box);
-      if (!v.ok) { choix = null; arreterMinuterie(); ajuste.hidden = true; if (v.geo && z.x1 == null) montrerPoignee(v.geo); else poignee.hidden = true; document.getElementById("zoneMsg").textContent = v.raison; refus.hidden = false; return; }
-      proposer(z, v);
-    };
-    const bas = (e) => {
-      arreterMinuterie(); zp.setPointerCapture?.(e.pointerId);
-      if (e.target === poignee && dernier) { // glissé du rond : on garde l endroit, on change la taille
-        const z = dernier, g = iaGeometrie(W, H, p, pose, z), { A, C } = reperes(g);
-        taille = { z, A, C, s0: z.s || 1 }; return;
-      }
-      taille = null; if (refus.hidden === false) refus.hidden = true;
-      debut = pos(e); point.hidden = false; point.style.left = (debut.x * 100) + "%"; point.style.top = (debut.y * 100) + "%"; cadre.hidden = true; poignee.hidden = true; ajuste.hidden = true; choix = null;
-    };
-    const bouge = (e) => {
-      if (taille) {
-        const q = pos(e), P = { x: q.x * W, y: q.y * H }, { A, C } = taille, vx = C.x - A.x, vy = C.y - A.y;
-        const r = ((P.x - A.x) * vx + (P.y - A.y) * vy) / Math.max(1, vx * vx + vy * vy);
-        taille.z = { ...taille.z, s: borne(taille.s0 * r, 0.33, 3) };
-        const g = iaGeometrie(W, H, p, pose, taille.z); montrerCadre(g.box); montrerPoignee(g); return;
-      }
-      if (!debut) return; const q = pos(e); if (Math.hypot((q.x - debut.x) * debut.r.width, (q.y - debut.y) * debut.r.height) < 14) return; point.hidden = true; montrerCadre({ x0: Math.min(debut.x, q.x) * W, y0: Math.min(debut.y, q.y) * H, x1: Math.max(debut.x, q.x) * W, y1: Math.max(debut.y, q.y) * H });
-    };
-    const haut = (e) => {
-      if (taille) { const z = taille.z; taille = null; ia.bilan.push({ photo: numero, taille: z.s }); verifier(z); arreterMinuterie(); return; } // après un ajustement, le client confirme lui-même
-      if (!debut) return; const q = pos(e), d0 = debut; debut = null;
-      const glisse = Math.hypot((q.x - d0.x) * d0.r.width, (q.y - d0.y) * d0.r.height) >= 14;
-      const z = glisse ? { x0: Math.min(d0.x, q.x), y0: Math.min(d0.y, q.y), x1: Math.max(d0.x, q.x), y1: Math.max(d0.y, q.y), ...hz } : { x: d0.x, y: d0.y, ...hz };
-      verifier(z);
-    };
-    creer.onclick = () => { if (choix) terminer(choix); };
-    const ferme = () => terminer(null);
-    zp.addEventListener("pointerdown", bas); zp.addEventListener("pointermove", bouge); zp.addEventListener("pointerup", haut);
-    dlg.addEventListener("close", ferme);
-    document.getElementById("zoneFermer").onclick = () => terminer(null);
-    document.getElementById("zoneAutreEndroit").onclick = () => { refus.hidden = true; cadre.hidden = true; point.hidden = true; poignee.hidden = true; ajuste.hidden = true; choix = null; taille = null; };
-    document.getElementById("zoneAutrePhoto").onclick = () => terminer(null);
-    document.getElementById("zoneVoirChezMoi").onclick = () => { terminer(null); document.getElementById("voir").click(); };
-    dlg.showModal();
-  });
-}
-
-// Contrôle d'un rendu et recollage : seule la zone du masque vient de l'IA (bord adouci), le reste est la photo d'origine.
-// Mesures sur une grille de 96 cases de large : présence du produit (cases changées dans le masque, rapportées à la place
-// estimée du produit), ressemblance des couleurs changées avec les vues du produit, écart au bord du masque (raccord
-// invisible ?), changements hors du masque (l'IA a-t-elle refait toute la photo ?), part du masque entièrement repeinte.
-function iaControler(base, sortie, vues, geo) {
-  const W = base.width, H = base.height, n = 96, m = Math.round(n * H / W), sx = n / W, sy = m / H;
-  // Réduction en deux temps, moyenne par case (sans filtre de flou, dont le rendu variait d'un appel à l'autre).
-  const petit = (src) => {
-    const c1 = document.createElement("canvas"); c1.width = n * 4; c1.height = m * 4; const g1 = c1.getContext("2d"); g1.imageSmoothingQuality = "high"; g1.drawImage(src, 0, 0, n * 4, m * 4);
-    const d1 = g1.getImageData(0, 0, n * 4, m * 4).data, out = new Uint8ClampedArray(n * m * 4);
-    for (let y = 0; y < m; y++) for (let x = 0; x < n; x++) for (let k = 0; k < 3; k++) {
-      let s = 0; for (let dy = 0; dy < 4; dy++) for (let dx = 0; dx < 4; dx++) s += d1[((y * 4 + dy) * n * 4 + x * 4 + dx) * 4 + k];
-      out[(y * n + x) * 4 + k] = s / 16;
-    }
-    return out;
-  };
-  const a = petit(base), b = petit(sortie);
-  const M = { x0: Math.floor(geo.masque.x0 * sx), y0: Math.floor(geo.masque.y0 * sy), x1: Math.ceil(geo.masque.x1 * sx), y1: Math.ceil(geo.masque.y1 * sy) };
-  const dansM = (x, y) => x >= M.x0 && x < M.x1 && y >= M.y0 && y < M.y1;
-  // Écart de luminosité d'ensemble retiré, mesuré hors du masque.
-  let da = 0, nd = 0;
-  for (let y = 0; y < m; y++) for (let x = 0; x < n; x++) if (!dansM(x, y)) { const i = (y * n + x) * 4; da += (b[i] + b[i + 1] + b[i + 2] - a[i] - a[i + 1] - a[i + 2]) / 3; nd++; }
-  da = nd ? da / nd : 0;
-  const ecart = new Float32Array(n * m);
-  for (let i = 0, j = 0; i < a.length; i += 4, j++) ecart[j] = (Math.abs(b[i] - a[i] - da) + Math.abs(b[i + 1] - a[i + 1] - da) + Math.abs(b[i + 2] - a[i + 2] - da)) / 3;
-  let changeM = 0, cellsM = 0, dehors = 0, cellsD = 0; const anneau = [], change = new Uint8Array(n * m);
-  for (let y = 0; y < m; y++) for (let x = 0; x < n; x++) {
-    const j = y * n + x, c = ecart[j] > (dansM(x, y) ? IA_SEUIL_PRESENCE : IA_SEUIL_CHANGE); // dans la zone : seuil plus fin (produits clairs sur fond clair)
-    if (dansM(x, y)) { cellsM++; if (c) { changeM++; change[j] = 1; } if (x < M.x0 + 2 || x >= M.x1 - 2 || y < M.y0 + 2 || y >= M.y1 - 2) anneau.push(ecart[j]); }
-    else { cellsD++; if (c) dehors++; }
-  }
-  anneau.sort((p, q) => p - q);
-  // Coupure (réglage du 22/11 sur les vrais rendus v5) : le produit déborde du masque et le recollage le couperait
-  // (haut d'un vase, bas d'un miroir), ou l'IA a effacé un objet du client au bord du masque (fantôme). On mesure,
-  // côté par côté, la part de la bande extérieure du masque (2 cases) qui a changé ; le côté où le produit s'appuie
-  // (sol ou table en bas, plafond en haut) n'est pas compté, l'ombre et le fil y touchent normalement le bord.
-  const bande = (x0, y0, x1, y1) => { let t = 0, c = 0; for (let y = Math.max(0, y0); y < Math.min(m, y1); y++) for (let x = Math.max(0, x0); x < Math.min(n, x1); x++) { t++; if (ecart[y * n + x] > IA_SEUIL_CHANGE) c++; } return t ? c / t : 0; };
-  const cotes = { haut: M.y0 > 0 ? bande(M.x0, M.y0, M.x1, M.y0 + 2) : 0, bas: M.y1 < m ? bande(M.x0, M.y1 - 2, M.x1, M.y1) : 0, gauche: M.x0 > 0 ? bande(M.x0, M.y0, M.x0 + 2, M.y1) : 0, droite: M.x1 < n ? bande(M.x1 - 2, M.y0, M.x1, M.y1) : 0 };
-  if (geo.pose === "sol" || geo.pose === "table") cotes.bas = 0;
-  if (geo.pose === "plafond") cotes.haut = 0;
-  const bx = Math.max(1, (geo.box.x1 - geo.box.x0) * sx * (geo.box.y1 - geo.box.y0) * sy);
-  const couleurs = iaHistogramme(b, false, change);
-  // Produit surtout neutre mais avec des couleurs (miroir : verre gris, cadre doré) : le verre reflète la pièce du client,
-  // on compare alors seulement les teintes (cadre). Un produit tout blanc (vase) garde la comparaison complète.
-  const chroma = (h) => { let s = 0; for (let k = 0; k < 24; k++) s += h[k]; return s; };
-  const teintes = (h) => { const s = chroma(h) || 1, o = new Float64Array(27); for (let k = 0; k < 24; k++) o[k] = h[k] / s; return o; };
-  const ress = (v) => { const cv = chroma(v.couleurs); return cv < 0.5 && cv >= 0.15 ? iaRessemblance(teintes(v.couleurs), teintes(couleurs)) : iaRessemblance(v.couleurs, couleurs); };
-  // Produit surtout gris ou blanc (miroir, globe de verre) : son verre prend les couleurs et la lumière de la pièce du client, la ressemblance des couleurs ne dit presque rien ; seuil abaissé (22/11 : 7 rendus fidèles sur 8 de ces produits écartés à tort au seuil commun).
-  const neutre = vues.some((v) => 1 - chroma(v.couleurs) >= 0.5);
-  const r = {
-    presence: changeM / bx, plein: cellsM ? changeM / cellsM : 0, dehors: cellsD ? dehors / cellsD : 0,
-    bord: anneau.length ? anneau[Math.floor(anneau.length / 2)] : 0,
-    coupe: Math.max(cotes.haut, cotes.bas, cotes.gauche, cotes.droite), neutre,
-    ressemblance: changeM ? Math.max(...vues.map(ress)) : 0,
-  };
-  r.ok = r.presence >= IA_PRESENCE_MIN && r.plein <= IA_PLEIN_MAX && r.dehors <= IA_DEHORS_MAX && r.bord <= IA_BORD_MAX && r.coupe <= IA_COUPE_MAX && r.ressemblance >= (r.neutre ? IA_RESSEMBLANCE_NEUTRE_MIN : IA_RESSEMBLANCE_MIN);
-  // Recollage de la seule zone du masque, bord adouci.
-  const fin = document.createElement("canvas"); fin.width = W; fin.height = H;
-  const gf = fin.getContext("2d"); gf.drawImage(base, 0, 0);
-  const morceau = document.createElement("canvas"); morceau.width = W; morceau.height = H;
-  const gm = morceau.getContext("2d"), fl = Math.round(0.012 * Math.max(W, H)), q = geo.masque;
-  gm.fillStyle = "#000"; gm.filter = "blur(" + fl + "px)";
-  const ins = (auBord) => auBord ? -fl * 3 : fl * 1.5; // rentré dans la zone, sauf au bord de la photo
-  const ix0 = q.x0 + ins(q.x0 <= 0), iy0 = q.y0 + ins(q.y0 <= 0), ix1 = q.x1 - ins(q.x1 >= W), iy1 = q.y1 - ins(q.y1 >= H);
-  gm.fillRect(ix0, iy0, ix1 - ix0, iy1 - iy0);
-  // Débord (réglage du 22/11 sur les vrais rendus v5) : le masque guide l'IA sans frontière stricte, elle dépasse parfois
-  // (haut d'un vase, bas d'un miroir, anse d'une tasse effacée). On recolle aussi les cases changées reliées au masque,
-  // dans une marge de 40 % de la taille du produit, sinon le recollage couperait le produit ou laisserait un fantôme.
-  const bw = (geo.box.x1 - geo.box.x0) * sx, bh = (geo.box.y1 - geo.box.y0) * sy;
-  const E = { x0: Math.max(0, Math.floor(M.x0 - 0.4 * bw)), y0: Math.max(0, Math.floor(M.y0 - 0.4 * bh)), x1: Math.min(n, Math.ceil(M.x1 + 0.4 * bw)), y1: Math.min(m, Math.ceil(M.y1 + 0.4 * bh)) };
-  const vu = new Uint8Array(n * m), pile = [];
-  for (let y = Math.max(0, M.y0 - 1); y < Math.min(m, M.y1 + 1); y++) for (let x = Math.max(0, M.x0 - 1); x < Math.min(n, M.x1 + 1); x++) if (!dansM(x, y) && ecart[y * n + x] > IA_SEUIL_PRESENCE) { vu[y * n + x] = 1; pile.push(y * n + x); }
-  while (pile.length) {
-    const j = pile.pop(), x = j % n, y = (j - x) / n;
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const X = x + dx, Y = y + dy, J = Y * n + X;
-      if (X < E.x0 || X >= E.x1 || Y < E.y0 || Y >= E.y1 || vu[J] || dansM(X, Y) || ecart[J] <= IA_SEUIL_PRESENCE) continue;
-      vu[J] = 1; pile.push(J);
-    }
-  }
-  let deborde = 0;
-  for (let j = 0; j < n * m; j++) if (vu[j]) { deborde++; const x = j % n, y = (j - x) / n; gm.fillRect((x - 3) / sx, (y - 3) / sy, 7 / sx, 7 / sy); }
-  r.deborde = deborde / Math.max(1, cellsM);
-  gm.filter = "none"; gm.globalCompositeOperation = "source-in"; gm.drawImage(sortie, 0, 0, W, H);
-  gf.drawImage(morceau, 0, 0);
-  r.fin = fin;
-  return r;
-}
-// Seuils provisoires du contrôle (22/11), à régler sur les 20 essais dès que le serveur v5 est en place (outil
-// essai-seuils) : écart par case pour dire « changé », présence minimale du produit, part maximale du masque repeinte,
-// changements maximaux hors du masque, écart maximal au bord du masque, ressemblance minimale des couleurs.
-const IA_SEUIL_CHANGE = 22, IA_SEUIL_PRESENCE = 14, IA_PRESENCE_MIN = 0.08, IA_PLEIN_MAX = 0.99, IA_DEHORS_MAX = 0.2, IA_BORD_MAX = 16, IA_COUPE_MAX = 1, IA_RESSEMBLANCE_MIN = 0.5, IA_RESSEMBLANCE_NEUTRE_MIN = 0.15;
-
-// Mention inscrite dans l'image elle-même (« Image modifiée par IA » : règlement européen sur l'IA, article 50).
-function iaMention(c, txt) {
-  const g = c.getContext("2d"), fs = Math.max(14, Math.round(Math.max(c.width, c.height) / 60));
-  g.font = "600 " + fs + "px Inter, system-ui, sans-serif"; const lw = g.measureText(txt).width;
-  g.fillStyle = "rgba(0,0,0,.62)"; g.fillRect(fs * 0.6, c.height - fs * 2.2, lw + fs, fs * 1.6); g.fillStyle = "#fff"; g.fillText(txt, fs * 1.1, c.height - fs * 0.95);
-}
-
-// Dernier recours, sans IA : notre modèle 3D (le vrai produit, aux cotes) posé à l'endroit touché, avec une ombre douce.
-async function iaApercu3D(base, pose, geo) {
-  const orbite = vue.cameraOrbit;
-  const theta = (pose === "mur" ? 0 : -30) - Math.round((geo.ax / base.width - 0.5) * 30); // vue de trois quarts, comme les vues envoyées à l IA
-  const phi = pose === "mur" ? 90 : pose === "plafond" ? 96 : Math.round(90 - Math.min(35, geo.dep * 180 / Math.PI + 4));
-  let im;
-  try { vue.cameraOrbit = `${theta}deg ${phi}deg auto`; vue.jumpCameraToGoal(); await attendre(450); im = await createImageBitmap(await vue.toBlob({ mimeType: "image/png", idealAspect: true })); }
-  finally { vue.cameraOrbit = orbite; vue.jumpCameraToGoal(); }
-  const t = document.createElement("canvas"); t.width = im.width; t.height = im.height; const gt = t.getContext("2d"); gt.drawImage(im, 0, 0);
-  const d = gt.getImageData(0, 0, t.width, t.height).data; let x0 = t.width, y0 = t.height, x1 = 0, y1 = 0;
-  for (let y = 0; y < t.height; y++) for (let x = 0; x < t.width; x++) if (d[(y * t.width + x) * 4 + 3] > 20) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
-  if (x1 <= x0 || y1 <= y0) { x0 = 0; y0 = 0; x1 = t.width - 1; y1 = t.height - 1; }
-  const bw = geo.box.x1 - geo.box.x0, bh = geo.box.y1 - geo.box.y0, cw = x1 - x0 + 1, ch = y1 - y0 + 1;
-  // 23/11 : taille calée sur la largeur vue du produit (largeur et profondeur selon l angle de vue), aux cotes et à l échelle k ;
-  // avant, le calage sur la hauteur du cadre rapetissait les produits bas vus de haut (table basse 27 % trop petite).
-  const pr0 = PRODUITS[courant], th = theta * Math.PI / 180, lv = (+pr0.largeur_cm || 50) * Math.abs(Math.cos(th)) + (pose === "mur" ? 0 : (+pr0.profondeur_cm || 30) * Math.abs(Math.sin(th)));
-  const s = geo.k * lv / cw, dw = cw * s, dh = ch * s, dx = geo.ax - dw / 2;
-  const dy = pose === "plafond" ? geo.box.y0 : pose === "mur" ? (geo.box.y0 + geo.box.y1) / 2 - dh / 2 : geo.box.y1 - dh;
-  const c = document.createElement("canvas"); c.width = base.width; c.height = base.height; const g = c.getContext("2d"); g.drawImage(base, 0, 0);
-  if (pose === "sol" || pose === "table") {
-    const ry = Math.max(4, dw * (0.05 + 0.25 * Math.sin(geo.dep))), cy = dy + dh - ry * 0.4;
-    g.save(); g.translate(geo.ax, cy); g.scale(1, ry / (dw * 0.55)); const grad = g.createRadialGradient(0, 0, 0, 0, 0, dw * 0.55);
-    grad.addColorStop(0, "rgba(0,0,0,.38)"); grad.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = grad; g.beginPath(); g.arc(0, 0, dw * 0.55, 0, Math.PI * 2); g.fill(); g.restore();
-  } else if (pose === "mur") { g.shadowColor = "rgba(0,0,0,.35)"; g.shadowBlur = dw * 0.03; g.shadowOffsetX = dw * 0.01; g.shadowOffsetY = dw * 0.02; }
-  g.drawImage(t, x0, y0, cw, ch, dx, dy, dw, dh);
-  g.shadowColor = "transparent";
-  iaMention(c, "Aperçu 3D, sans IA");
-  return c;
-}
-
-// Une photo : place estimée, masque, appels à l'IA avec contrôle et nouvel essai, puis dernier recours si besoin.
-async function iaUnePhoto(photo, choix, vues, p, pose, numero, total) {
-  const [TW, TH] = iaTaille(photo.naturalWidth, photo.naturalHeight);
-  const base = document.createElement("canvas"); base.width = TW; base.height = TH; base.getContext("2d").drawImage(photo, 0, 0, TW, TH);
-  const geo = iaGeometrie(TW, TH, p, pose, choix.z);
-  const masque = document.createElement("canvas"); masque.width = TW; masque.height = TH;
-  const gm = masque.getContext("2d"); gm.fillStyle = "#000"; gm.fillRect(0, 0, TW, TH);
-  gm.clearRect(geo.masque.x0, geo.masque.y0, geo.masque.x1 - geo.masque.x0, geo.masque.y1 - geo.masque.y0);
-  const ligneBilan = { photo: numero, produit: p.id, pose, zone: choix.z, essais: 0, type: "", raisons: [] };
-  ia.bilan.push(ligneBilan);
-  let retenu = null;
-  if (!ia.sansIA) {
-    const envoi = new FormData();
-    envoi.append("image", await enBlob(base), "piece.png");
-    envoi.append("mask", await enBlob(masque), "masque.png");
-    for (const v of vues) envoi.append("ref", await enBlob(v.c), "produit.png");
-    envoi.append("taille", TW + "x" + TH); envoi.append("nom", p.nom); envoi.append("categorie", p.categorie || "");
-    envoi.append("l", p.largeur_cm); envoi.append("p", p.profondeur_cm); envoi.append("h", p.hauteur_cm); envoi.append("pose", pose);
-    const b = geo.box; envoi.append("zone", [b.x0 / TW, b.y0 / TH, b.x1 / TW, b.y1 / TH].map((v) => borne(v, 0, 1).toFixed(3)).join(","));
-    for (let essai = 1; essai <= ia.essaisMax; essai++) {
-      iaEtat(`Photo ${numero} sur ${total} : l'IA met le produit à l'endroit choisi, puis on vérifie qu'il est fidèle` + (essai > 1 ? ` (essai ${essai} sur ${ia.essaisMax}, l'essai précédent n'était pas assez fidèle)` : "") + "…");
-      let rep, json = {};
-      try { rep = await fetch(SERVEUR_IA, { method: "POST", body: envoi }); json = await rep.json().catch(() => ({})); }
-      catch (err) { ligneBilan.raisons.push("réseau : " + String(err.message || err).slice(0, 120)); break; }
-      ligneBilan.essais = essai; ligneBilan.serveur = rep.headers.get("X-Serveur") || "v4 ou plus ancien";
-      if (!rep.ok || !json.data?.[0]?.b64_json) { ligneBilan.raisons.push("serveur : " + String(json.error?.message || rep.status).slice(0, 160)); break; }
-      const sortie = await image("data:image/jpeg;base64," + json.data[0].b64_json);
-      const r = iaControler(base, sortie, vues, geo);
-      const ligne = { produit: p.id, photo: numero, essai, presence: +r.presence.toFixed(3), plein: +r.plein.toFixed(3), dehors: +r.dehors.toFixed(3), bord: +r.bord.toFixed(1), coupe: +r.coupe.toFixed(3), ressemblance: +r.ressemblance.toFixed(3), ok: r.ok, brut: sortie.src, rendu: r.fin };
-      ia.journal.push(ligne);
-      if (r.ok) { retenu = r.fin; break; }
-      // Sans le serveur v5 (masque ignoré), l'IA place le produit où elle veut : inutile de payer d'autres essais.
-      if (!rep.headers.get("X-Serveur")) { ligneBilan.raisons.push("serveur sans masque (v5 pas encore en place)"); break; }
-    }
-  }
-  if (retenu) { iaMention(retenu, "Image modifiée par IA"); ligneBilan.type = "ia"; return { url: retenu.toDataURL("image/jpeg", 0.9), ia: true }; }
-  ligneBilan.type = "3d";
-  const c = await iaApercu3D(base, pose, geo);
-  return { url: c.toDataURL("image/jpeg", 0.9), ia: false, indispo: !ia.sansIA && !ia.journal.some((l) => l.produit === p.id && l.photo === numero) && ligneBilan.raisons.some((r) => /^(serveur|réseau)/.test(r)) };
-}
-
-// File des photos : chacune passe par le toucher, la vérification puis l'IA, l'une après l'autre.
 document.getElementById("iaFichier").addEventListener("change", (e) => {
   const place = MAX_PHOTOS - ia.resultats.length - ia.file.length;
   const fichiers = [...(e.target.files ?? [])].slice(0, Math.max(0, place)); e.target.value = "";
   if (!fichiers.length) { iaEtat("Vous avez déjà " + MAX_PHOTOS + " photos pour ce produit."); return; }
   document.getElementById("dlgPile").close();
-  ia.file.push(...fichiers);
-  iaTraiterFile();
+  ia.file.push(...fichiers); iaTraiterFile();
 });
 async function iaTraiterFile() {
   if (ia.occupe) return; ia.occupe = true;
-  const p = PRODUITS[courant], pose = iaPose(p), bouton = document.getElementById("avecPhoto"); bouton.disabled = true;
-  let vues = null, numero = 0, apercus = 0, refus = 0, indispo = 0;
-  try {
-    while (ia.file.length) {
-      const f = ia.file.shift(), total = numero + 1 + ia.file.length; numero++;
-      const url = URL.createObjectURL(f);
-      try {
-        const photo = await image(url), qualite = iaQualite(photo);
-        iaEtat("");
-        const choix = await iaChoisirZone(url, photo, qualite, p, pose, numero, total);
-        if (!choix || choix.refus) { if (choix?.refus) { refus++; ia.bilan.push({ photo: numero, produit: p.id, verification: choix.refus.code, raison: choix.refus.raison, qualite }); } continue; }
-        if (!vues) { iaEtat("Préparation des vues du produit…"); vues = await iaVuesProduit(); }
-        const res = await iaUnePhoto(photo, choix, vues, p, pose, numero, total); ia.bilan.at(-1).qualite = qualite;
-        if (!res.ia) apercus++;
-        if (res.indispo) indispo++;
-        ia.resultats.push(res); afficherPile();
-      } catch (err) { ia.bilan.push({ photo: numero, erreur: String(err.message || err).slice(0, 200) }); }
-      finally { URL.revokeObjectURL(url); }
-    }
-  } finally { ia.occupe = false; bouton.disabled = false; }
-  // 23/11 : service d'IA indisponible (réseau, quota du mois atteint) : on le dit tel quel, sans parler de fidélité.
-  iaEtat(indispo ? "Le service d'IA de ce prototype n'est pas disponible pour le moment. Vous voyez à la place notre modèle 3D posé à l'endroit choisi, à la taille estimée (« Aperçu 3D, sans IA »)."
-    : apercus ? (apercus > 1 ? apercus + " photos" : "Une photo") + " : l'IA n'a pas donné un rendu assez fidèle, même après plusieurs essais. Vous voyez à la place notre modèle 3D posé à l'endroit choisi (« Aperçu 3D, sans IA »). Pour un rendu plus naturel, essayez une autre photo ou un autre endroit, ou « Voir chez moi »."
-    : refus ? "La photo n'a pas été envoyée : " + (ia.bilan.at(-1)?.raison || "elle ne convient pas") : "");
+  try { while (ia.file.length) { const f = ia.file.shift(); try { await poserSurPhoto(f); } catch (err) { ia.bilan.push({ erreur: String(err.message || err).slice(0, 200) }); iaEtat("Cette photo n'a pas pu être ouverte. Essayez-en une autre."); } } }
+  finally { ia.occupe = false; }
+}
+// Une photo : analyse, toucher, déplacement et rotation du doigt, puis « Garder cette image ».
+function poserSurPhoto(fichier) {
+  return new Promise(async (fini) => {
+    const p = PRODUITS[courant], pose = iaPose(p), dlg = document.getElementById("dlgPose"), url = URL.createObjectURL(fichier);
+    const img = document.getElementById("poseImg"), zone = document.getElementById("posePhoto"), etat = document.getElementById("poseEtat");
+    const outils = document.getElementById("poseOutils"); outils.hidden = true;
+    document.getElementById("tPose").textContent = p.nom.split(",")[0] + " dans votre pièce";
+    etat.textContent = "Analyse de votre pièce sur votre téléphone…";
+    img.src = url; await img.decode().catch(() => {}); dlg.showModal();
+    let f35 = null; try { f35 = focale35(await fichier.slice(0, 262144).arrayBuffer()); } catch { /* pas d'EXIF */ }
+    const poseur = new Poseur(zone, img, f35), bilan = { produit: p.id, pose };
+    ia.bilan.push(bilan); window.poseurCourant = poseur;
+    const t0 = performance.now(); let pret = false;
+    const a = await poseur.analyser((f) => { etat.textContent = "Première utilisation : chargement de l'analyse de pièce (" + Math.round(f * 100) + " %)…"; });
+    Object.assign(bilan, a, { analyseMs: Math.round(performance.now() - t0) }); pret = true;
+    etat.textContent = POSE_TXT[pose] + " Le produit y apparaît à sa taille réelle ; faites-le glisser du doigt pour le déplacer.";
+    const ro = new ResizeObserver(() => poseur.redimensionner()); ro.observe(img);
+    let pose_ok = false, glisse = null, doigts = new Map(), angle0 = null, dist0 = null;
+    const part = (e) => { const r = img.getBoundingClientRect(); return [borne((e.clientX - r.left) / r.width, 0, 1), borne((e.clientY - r.top) / r.height, 0, 1)]; };
+    const toucher = async (x, y) => {
+      const r = await poseur.poser(p, pose, x, y); Object.assign(bilan, { toucher: [+x.toFixed(3), +y.toFixed(3)], resultat: r });
+      if (r.refus) { etat.textContent = r.refus; return; }
+      pose_ok = true; outils.hidden = false;
+      etat.textContent = "Glissez le produit du doigt pour le déplacer" + (pose === "mur" ? "." : ", tournez-le avec les boutons ou à deux doigts.") + " Puis « Garder cette image ».";
+    };
+    const bas = (e) => { zone.setPointerCapture(e.pointerId); doigts.set(e.pointerId, part(e)); glisse = { depart: part(e), bouge: false }; if (doigts.size === 2) { const [A, B] = [...doigts.values()]; angle0 = Math.atan2(B[1] - A[1], B[0] - A[0]); dist0 = Math.hypot(B[0] - A[0], B[1] - A[1]); } };
+    const bouge = (e) => {
+      if (!doigts.has(e.pointerId)) return; doigts.set(e.pointerId, part(e));
+      if (doigts.size === 2 && angle0 !== null) { const [A, B] = [...doigts.values()], an = Math.atan2(B[1] - A[1], B[0] - A[0]); poseur.tourner(-(an - angle0)); angle0 = an; const d = Math.hypot(B[0] - A[0], B[1] - A[1]); if (dist0 > 0.02) poseur.taille(d / dist0); dist0 = d; glisse = null; return; }
+      if (!glisse || !pose_ok) return; const [x, y] = part(e);
+      if (Math.hypot(x - glisse.depart[0], y - glisse.depart[1]) > 0.01) glisse.bouge = true;
+      if (glisse.bouge) poseur.deplacer(x, y);
+    };
+    const haut = (e) => { if (!pret) return; doigts.delete(e.pointerId); if (doigts.size < 2) angle0 = null; if (glisse && !glisse.bouge && doigts.size === 0) toucher(...part(e)); glisse = null; };
+    zone.onpointerdown = bas; zone.onpointermove = bouge; zone.onpointerup = haut; zone.onpointercancel = haut;
+    document.getElementById("poseGauche").onclick = () => poseur.tourner(-Math.PI / 12);
+    document.getElementById("poseDroite").onclick = () => poseur.tourner(Math.PI / 12);
+    document.getElementById("posePlus").onclick = () => poseur.taille(1.05);
+    document.getElementById("poseMoins").onclick = () => poseur.taille(1 / 1.05);
+    const fin = (garder) => async () => {
+      if (garder) { ia.resultats.push({ url: await poseur.exporter() }); Object.assign(bilan, { garde: true, echelle: poseur.echelle }); afficherPile(); iaEtat(""); }
+      ro.disconnect(); poseur.detruire(); URL.revokeObjectURL(url); window.poseurCourant = null; dlg.onclose = null; dlg.close(); fini();
+    };
+    document.getElementById("poseGarder").onclick = fin(true);
+    dlg.onclose = fin(false);
+    document.getElementById("poseFermer").onclick = () => dlg.close();
+  });
 }
 
 function afficherPile() {
@@ -713,8 +319,8 @@ document.getElementById("pile").addEventListener("click", () => {
   const nom = PRODUITS[courant].nom.split(",")[0];
   ia.resultats.forEach((r, k) => {
     const f = document.createElement("figure"); f.className = "rendu";
-    const im = document.createElement("img"); im.src = r.url; im.alt = "Votre photo " + (k + 1) + " avec " + nom + (r.ia ? ", image modifiée par IA" : ", aperçu 3D sans IA");
-    const cap = document.createElement("figcaption"); cap.textContent = r.ia ? "Image modifiée par IA" : "Aperçu 3D, sans IA"; f.append(im, cap); et.appendChild(f);
+    const im = document.createElement("img"); im.src = r.url; im.alt = "Votre photo " + (k + 1) + " avec " + nom + ", montage 3D";
+    const cap = document.createElement("figcaption"); cap.textContent = "Montage 3D, à titre indicatif"; f.append(im, cap); et.appendChild(f);
   });
   document.getElementById("tPile").textContent = "Vos photos avec " + nom;
   document.getElementById("dlgPile").showModal();
