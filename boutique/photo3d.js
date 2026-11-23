@@ -172,6 +172,23 @@ function lumiere(img) {
   return { haut: teinte(haut), bas: teinte(bas), tout: teinte(tout), lum, bx, by };
 }
 
+// Environnement de reflet tiré de la photo, sur une COPIE RÉDUITE (1024 x 512) : une photo de téléphone (4000 px et plus)
+// envoyée telle quelle au processeur graphique donnait un environnement noir, donc un miroir et un métal noirs (test d'Antoine du 23/11).
+// La photo floutée couvre toute la sphère (haut = haut de la photo, bas = bas), la photo moins floue occupe la bande du milieu ;
+// une pièce sombre est éclaircie pour que le métal garde un reflet lisible.
+function cartePhoto(img) {
+  const w = 1024, h = 512, c = document.createElement("canvas"); c.width = w; c.height = h;
+  const g = c.getContext("2d"); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
+  const petit = (pw, ph) => { const p = document.createElement("canvas"); p.width = pw; p.height = ph; const q = p.getContext("2d"); q.imageSmoothingEnabled = true; q.imageSmoothingQuality = "high"; q.drawImage(img, 0, 0, pw, ph); return p; };
+  g.drawImage(petit(32, 16), 0, 0, w, h);
+  g.globalAlpha = 0.85; g.drawImage(petit(192, 72), 0, h * 0.22, w, h * 0.56); g.globalAlpha = 1;
+  const d = g.getImageData(0, 0, w, h).data; let s = 0, n = 0;
+  for (let i = 0; i < d.length; i += 64) { s += d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11; n++; }
+  const lum = s / n / 255;
+  if (lum < 0.42) { const k = borne((0.42 - lum) / (1 - lum), 0, 0.35); g.globalCompositeOperation = "screen"; g.fillStyle = `rgba(255,255,255,${k})`; g.fillRect(0, 0, w, h); g.globalCompositeOperation = "source-over"; }
+  return { c, lum };
+}
+
 // ---------- 4. Scène ----------
 const versTrois = (v) => new THREE.Vector3(v[0], -v[1], -v[2]);
 const chargeur = new GLTFLoader(), cacheModeles = new Map();
@@ -207,10 +224,15 @@ export class PoseurPhoto {
     const f = this.piece.f;
     this.camera = new THREE.PerspectiveCamera(2 * Math.atan(H0 / 2 / f) * 180 / Math.PI, W0 / H0, 0.05, 60);
     this.lum = lumiere(this.img);
+    this.envSource = "piece";
     try {
-      const tex = new THREE.Texture(this.img); tex.needsUpdate = true; tex.mapping = THREE.EquirectangularReflectionMapping; tex.colorSpace = THREE.SRGBColorSpace;
-      const pm = new THREE.PMREMGenerator(this.renderer); this.scene.environment = pm.fromEquirectangular(tex).texture; this.scene.environmentIntensity = 0.9;
-    } catch (e) { console.warn("environnement photo", e); }
+      const { c, lum } = cartePhoto(this.img);
+      if (!(lum > 0.02)) throw new Error("photo illisible");
+      const tex = new THREE.CanvasTexture(c); tex.mapping = THREE.EquirectangularReflectionMapping; tex.colorSpace = THREE.SRGBColorSpace;
+      const pm = new THREE.PMREMGenerator(this.renderer), rt = pm.fromEquirectangular(tex); pm.dispose(); tex.dispose();
+      const gl = this.renderer.getContext(); if (gl.isContextLost && gl.isContextLost()) throw new Error("contexte perdu");
+      this.scene.environment = rt.texture; this.scene.environmentIntensity = 0.9; this.envSource = "photo";
+    } catch (e) { console.warn("environnement photo indisponible, pièce neutre", e); this.scene.environmentIntensity = 0.7; } // repli : RoomEnvironment du constructeur
     this.renderer.toneMappingExposure = borne(Math.pow(this.lum.lum / 0.45, 0.8), 0.35, 1.3); // pièce sombre : produit plus sombre
     const hemi = new THREE.HemisphereLight(this.lum.haut, this.lum.bas, 1.1); this.scene.add(hemi);
     this.soleil = new THREE.DirectionalLight(this.lum.tout, 1.9); this.soleil.castShadow = true;
@@ -235,12 +257,27 @@ export class PoseurPhoto {
     return null;
   }
   haut() { return versTrois(this.piece.sol ? this.piece.sol.n : [0, -1, 0]).normalize(); }
+  // Verticale pour la suspension. Le « sol » trouvé n'est retenu que s'il est crédible (téléphone penché vers le bas de
+  // -20 à 45 degrés) : sur une photo prise vers le plafond, sans sol visible, le bas de la photo est un mur, et sa normale
+  // prise pour la verticale couchait la suspension le long du plafond (test d'Antoine du 23/11). Sinon : l'axe vertical de
+  // la photo. Si le doigt est sur le plafond, sa normale (vers le bas) doit être opposée à la verticale retenue.
+  // Le roulis du « sol » n'est jamais repris (il penchait la tige sur les essais) : seule l'inclinaison avant / arrière du
+  // téléphone l'est, de -15 à 30 degrés ; la tige reste ainsi verticale dans la photo.
+  verticale(s, y) {
+    const sl = this.piece.sol, image = new THREE.Vector3(0, 1, 0);
+    if (!sl || !(sl.inclinaison > -15 && sl.inclinaison < 30)) return { U: image, fiable: false };
+    if (s.n && s.n[1] > 0.5 && versTrois(s.n).normalize().dot(versTrois(sl.n).normalize()) > -Math.cos(35 * Math.PI / 180)) return { U: image, fiable: false };
+    const a = sl.inclinaison * Math.PI / 180, U = new THREE.Vector3(0, Math.cos(a), Math.sin(a));
+    // Doigt dans la moitié haute de la photo : c'est le plafond ; si l'inclinaison estimée le place sous l'horizon, elle est fausse.
+    if (y < 0.5 && this.rayon(0.5, y).dot(U) < 0.05) return { U: image, fiable: false };
+    return { U, fiable: true };
+  }
   rayon(x, y) { // x, y en part de la photo -> direction (repère three)
     const { W, H, f } = this.piece; return versTrois([(x * W - W / 2) / f, (y * H - H / 2) / f, 1]).normalize();
   }
   // Pose du produit à l'endroit touché. Renvoie { ok } ou { refus: message }.
   async poser(produit, pose, x, y) {
-    const s = surface(this.piece, x, y), U = this.haut(), P = versTrois(s.P);
+    const s = surface(this.piece, x, y), P = versTrois(s.P); let U = this.haut(); this.ombreFiable = true;
     let plan, pos, type = pose;
     const sol = () => new THREE.Plane(U.clone(), HAUTEUR_APPAREIL); // U.p + h = 0 : le sol, 1,35 m sous l'appareil
     if (pose === "sol") {
@@ -259,16 +296,31 @@ export class PoseurPhoto {
       if (yb !== null) { const F = new THREE.Vector3(); if (new THREE.Ray(new THREE.Vector3(), this.rayon(x, yb)).intersectPlane(sol(), F) && F.length() < 12) appui = F; }
       this.pied = yb;
       plan = new THREE.Plane().setFromNormalAndCoplanarPoint(N, appui);
-    } else { // plafond : touché au plafond, ou sur la table / le sol au-dessus duquel la suspension pend
-      if (s.type === "plafond") plan = new THREE.Plane().setFromNormalAndCoplanarPoint(U.clone(), P), type = "plafond";
-      else { const base = s.type === "table" ? new THREE.Plane().setFromNormalAndCoplanarPoint(U.clone(), P) : sol(); plan = base; type = "au-dessus"; }
+    } else { // suspension : TOUJOURS pendante à la verticale de la pièce, haut de la tige au point touché au plafond,
+      // ou au-dessus de la table / du sol touché (bas à 75 cm).
+      const v = this.verticale(s, y); U = v.U; this.ombreFiable = v.fiable;
+      const R = this.rayon(x, y), monte = R.dot(U);
+      if (y < 0.5 || monte > 0.03) { // moitié haute de la photo, ou au-dessus de l'horizon : c'est le plafond
+        let h = 1.15; // plafond à 2,50 m (appareil à 1,35 m) quand la profondeur ne dit rien de sûr
+        if (v.fiable && s.type !== "inconnu") { const hp = P.dot(U); if (hp > 0.5 && hp < 2.3) h = hp; }
+        if (monte < 0.01) return { refus: "Touchez le plafond plus haut dans la photo, ou la table sous la suspension.", surface: s.type };
+        if (h / monte > 7) h = monte * 7; // plafond touché très loin : la suspension reste à 7 m au plus
+        plan = new THREE.Plane(U.clone(), -h); type = "plafond";
+      } else {
+        plan = v.fiable && s.type === "table" ? new THREE.Plane().setFromNormalAndCoplanarPoint(U.clone(), P) : new THREE.Plane(U.clone(), HAUTEUR_APPAREIL);
+        type = "au-dessus";
+        if (monte > -0.03) return { refus: "Touchez le plafond, ou la table au-dessus de laquelle la suspension doit pendre.", surface: s.type };
+      }
     }
     pos = new THREE.Vector3(); if (!new THREE.Ray(new THREE.Vector3(), this.rayon(x, y)).intersectPlane(plan, pos)) pos.copy(P);
     if (pos.length() > 12) return { refus: "Cet endroit est trop loin dans la photo. Touchez un endroit plus proche.", surface: s.type };
     if (!this.objet || this.objetId !== produit.id) {
       if (this.objet) this.scene.remove(this.groupe);
       this.objet = await modele(produit.glb); this.objetId = produit.id;
-      this.objet.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; const ms = Array.isArray(o.material) ? o.material : [o.material]; for (const m of ms) if (m && m.metalness > 0.4) { m.envMapIntensity = 2.4; m.needsUpdate = true; } } }); // métal et verre : reflets de la pièce plus marqués
+      this.objet.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; const ms = Array.isArray(o.material) ? o.material : [o.material]; for (const m of ms) { if (m && m.metalness > 0.4) { m.envMapIntensity = 2.4; m.needsUpdate = true; }
+        // Miroir : le verre (métal pur, rugosité nulle) et la dorure ne renvoient que le reflet ; un minimum de lumière propre
+        // (leur propre couleur, faible) garantit qu'ils ne sont jamais noirs, même si le reflet manque sur un téléphone.
+        if (m && produit.pose === "mur" && m.map) { m.emissive = new THREE.Color(1, 1, 1); m.emissiveMap = m.map; m.emissiveIntensity = 0.15 * borne(this.renderer.toneMappingExposure, 0.6, 1.2); m.needsUpdate = true; } } } }); // métal et verre : reflets de la pièce plus marqués
       const b = new THREE.Box3().setFromObject(this.objet); this.boite = b;
       this.groupe = new THREE.Group(); this.porteur = new THREE.Group(); this.porteur.add(this.objet); this.groupe.add(this.porteur);
       this.ombreSol = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShadowMaterial({ opacity: 0.22 }));
@@ -289,7 +341,9 @@ export class PoseurPhoto {
       F = plan.normal.clone(); Up = U.clone().sub(F.clone().multiplyScalar(U.dot(F))).normalize();
       this.objet.position.set(-c.x, -c.y, -b.min.z); // dos contre le mur, centre au point touché
     } else {
-      F = pos.clone().negate(); F.sub(U.clone().multiplyScalar(F.dot(U))).normalize();
+      F = pos.clone().negate(); F.sub(U.clone().multiplyScalar(F.dot(U)));
+      if (F.lengthSq() < 1e-6) { F.set(0, 0, 1); F.sub(U.clone().multiplyScalar(F.dot(U))); } // produit juste au-dessus ou au-dessous de l'appareil
+      F.normalize();
       F.applyAxisAngle(U, this.angle);
       if (type === "plafond") this.objet.position.y = -b.max.y;
       else if (type === "au-dessus") this.objet.position.y = 0.75 - b.min.y; // le bas de la suspension à 75 cm au-dessus
@@ -302,6 +356,7 @@ export class PoseurPhoto {
     // Ombres : sur le support (sol, table, mur) ; pour une suspension, sur ce qui est dessous.
     const plat = type !== "mur", dessous = type === "plafond" ? -(HAUTEUR_APPAREIL + this.groupe.position.dot(U)) : 0;
     this.ombreSol.scale.set(4, 4, 1); this.contact.visible = type === "sol" || type === "table";
+    this.ombreSol.visible = !(type === "plafond" || type === "au-dessus") || this.ombreFiable; // pas d'ombre sur un sol supposé
     if (plat) {
       this.ombreSol.rotation.set(-Math.PI / 2, 0, 0); this.ombreSol.position.set(0, (type === "plafond" ? Math.min(-0.5, dessous) : 0.002), 0);
       this.contact.rotation.set(-Math.PI / 2, 0, 0); this.contact.position.set(0, 0.003, 0);
