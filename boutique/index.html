@@ -102,11 +102,18 @@ p { margin: 0; }
 .zone-point { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(0,0,0,.55); pointer-events: none; }
 .zone-refus { display: grid; gap: 10px; background: var(--info-fond); color: var(--info); border-radius: 10px; padding: 12px 14px; }
 .dlg:has(.zone-refus:not([hidden])) .zone-photo img { max-height: 34dvh; } /* le message et ses 3 boutons restent visibles sur téléphone */
+/* 23/11 : le rond au coin du cadre agrandit ou réduit le produit d'un glissé, si la taille estimée ne va pas. */
+.zone-poignee { position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; background: #fff; border: 3px solid var(--accent); box-shadow: 0 1px 6px rgba(0,0,0,.45); cursor: nwse-resize; touch-action: none; }
+.zone-ajuste { display: grid; gap: 10px; }
+.dlg:has(.zone-ajuste:not([hidden])) .zone-photo img { max-height: 46dvh; }
+/* Mention « prototype » (demande d'Antoine du 23/11) : courte et visible près du bouton IA. */
+.proto { display: inline-block; font: 600 12px var(--f-texte); background: var(--info-fond); color: var(--info); border-radius: 999px; padding: 4px 10px; justify-self: start; }
+.conseils { margin: 0; padding-left: 18px; font-size: 13px; color: var(--doux); display: grid; gap: 2px; }
 </style>
 </head>
 <body>
 
-<div class="bandeau"><div class="cadre">Démonstration : la boutique « Atelier Exemple », ses noms et ses prix sont fictifs. Les produits 3D viennent de la bibliothèque libre Poly Haven (licence CC0). Pour votre boutique, chaque modèle est fait d'après vos photos et vos cotes.</div></div>
+<div class="bandeau"><div class="cadre"><b>Prototype</b> : version de démonstration, pas la version finale. La boutique « Atelier Exemple », ses noms et ses prix sont fictifs. Les produits 3D viennent de la bibliothèque libre Poly Haven (licence CC0). Pour votre boutique, chaque modèle est fait d'après vos photos et vos cotes.</div></div>
 <header class="boutique"><div class="cadre"><span class="logo">Atelier Exemple</span><nav class="menu" aria-label="Rayons (exemple)"><span>Salon</span><span>Rangement</span><span>Déco</span><span>Luminaires</span></nav></div></header>
 
 <main class="cadre">
@@ -138,10 +145,16 @@ p { margin: 0; }
         <button class="btn" type="button" id="avecPhoto">Voir avec ma photo (IA)</button>
         <button class="btn second" type="button" id="panier">Ajouter au panier</button>
       </div>
+      <p class="proto" id="proto">Prototype : version de démonstration, pas la version finale</p>
       <p class="note" id="arAbsent" role="status" hidden>« Voir chez moi » s'ouvre sur un téléphone (iPhone ou Android, sans application). Ici, utilisez « Voir avec ma photo (IA) ».</p>
       <p class="note" id="retour">Le bouton « Voir chez moi » pose le produit dans votre pièce avec la caméra du téléphone, à sa vraie taille. Avec « Voir avec ma photo (IA) », prenez une photo de chez vous et touchez l'endroit voulu : l'IA y met le produit, à l'échelle. Si l'un ne marche pas chez vous, l'autre prend le relais.</p>
       <div class="ia-panneau" id="iaAvis" hidden>
         <p class="note">Vos photos et des vues du produit sont envoyées à notre service d'IA (OpenAI), qui met le produit dans vos photos. Nous ne gardons aucune photo ; OpenAI peut la garder jusqu'à 30 jours pour lutter contre les abus. Chaque image obtenue porte la mention « Image modifiée par IA ». Une photo, un toucher sur l'endroit voulu, puis environ 30 secondes (parfois plus : chaque image est vérifiée et refaite si le produit n'est pas fidèle). Jusqu'à 4 photos.</p>
+        <ul class="conseils" aria-label="Conseils pour un bon rendu">
+          <li>Touchez un endroit libre : un mur dégagé, un sol ou une table sans objet dessus.</li>
+          <li>Rendent le mieux : miroirs et tableaux au mur, luminaires, plantes, objets de déco, petits meubles dans un espace libre.</li>
+          <li>Pour un grand meuble, photographiez la pièce debout, à 2 ou 3 mètres, en prenant le sol.</li>
+        </ul>
         <div><label class="btn" for="iaFichier">Prendre ou choisir des photos</label><input class="fichier" type="file" id="iaFichier" accept="image/*" multiple></div>
       </div>
       <p class="note" id="iaEtat" role="status" hidden></p>
@@ -168,7 +181,11 @@ p { margin: 0; }
   <div class="dlg">
     <div class="dlg-tete"><h2 id="tZone">Touchez l'endroit voulu</h2><button class="fermer" type="button" id="zoneFermer" aria-label="Fermer">×</button></div>
     <p class="note" id="zoneConsigne"></p>
-    <div class="zone-photo" id="zonePhoto"><img id="zoneImg" alt="Votre photo : touchez l'endroit où mettre le produit"><span class="zone-cadre" id="zoneCadre" hidden></span><span class="zone-point" id="zonePoint" hidden></span></div>
+    <div class="zone-photo" id="zonePhoto"><img id="zoneImg" alt="Votre photo : touchez l'endroit où mettre le produit"><span class="zone-cadre" id="zoneCadre" hidden></span><span class="zone-point" id="zonePoint" hidden></span><span class="zone-poignee" id="zonePoignee" role="slider" aria-label="Taille du produit : faites glisser pour agrandir ou réduire" hidden></span></div>
+    <div class="zone-ajuste" id="zoneAjuste" hidden>
+      <p class="note" id="zoneAjusteTxt">Le cadre pointillé montre la taille du produit à cet endroit. Trop petit ou trop grand ? Faites glisser le rond blanc.</p>
+      <div class="boutons"><button class="btn" type="button" id="zoneCreer">Créer l'image</button></div>
+    </div>
     <div class="zone-refus" id="zoneRefus" role="alert" hidden>
       <p id="zoneMsg"></p>
       <div class="boutons"><button class="btn" type="button" id="zoneAutreEndroit">Toucher un autre endroit</button><label class="btn second" for="iaFichier" id="zoneAutrePhoto">Prendre une autre photo</label><button class="btn second" type="button" id="zoneVoirChezMoi">Voir chez moi</button></div>
@@ -185,7 +202,7 @@ p { margin: 0; }
 </dialog>
 
 <script>
-const PRODUITS = [{"id":"enfilade-noyer-cannage","rayon":"Rangement","nom":"Enfilade Lison, noyer et lattes","largeur_cm":244,"profondeur_cm":52,"hauteur_cm":68,"prix":"1 290 €","texte":"Placage noyer, plateau en pierre claire, deux portes à lattes de bois, pieds en métal noir. Grand rangement pour le salon ou la salle à manger.","source":"modern_wooden_cabinet","categorie":"meuble de rangement","pose":"sol","glb":"modeles/enfilade-noyer-cannage.glb"},{"id":"fauteuil-chene-cuir","rayon":"Salon","nom":"Fauteuil Odile, chêne et cuir noir","largeur_cm":82,"profondeur_cm":99,"hauteur_cm":102,"prix":"690 €","texte":"Structure en chêne massif, coussins en cuir pleine fleur noir, accoudoirs en bois.","source":"modern_arm_chair_01","categorie":"assise","pose":"sol","glb":"modeles/fauteuil-chene-cuir.glb"},{"id":"table-basse-beton-chene","rayon":"Salon","nom":"Table basse Basile, béton et chêne","largeur_cm":120,"profondeur_cm":60,"hauteur_cm":39,"prix":"490 €","texte":"Plateau effet béton, angles incrustés et piètement traîneau en chêne massif.","source":"modern_coffee_table_01","categorie":"table basse","pose":"sol","glb":"modeles/table-basse-beton-chene.glb"},{"id":"fauteuil-pivotant-cuir","rayon":"Salon","nom":"Fauteuil pivotant Mila, cuir cognac","largeur_cm":101,"profondeur_cm":119,"hauteur_cm":117,"prix":"1 150 €","texte":"Coque en bois moulé, assise en cuir cognac capitonné, pied étoile pivotant en métal chromé.","source":"mid_century_lounge_chair","categorie":"assise","pose":"sol","glb":"modeles/fauteuil-pivotant-cuir.glb"},{"id":"canape-capitonne-cuir","rayon":"Salon","nom":"Canapé Émile 2 places, cuir capitonné","largeur_cm":181,"profondeur_cm":82,"hauteur_cm":71,"prix":"1 690 €","texte":"Dossier capitonné, cuir noir patiné, pieds galbés en bois foncé.","source":"sofa_02","categorie":"assise","pose":"sol","glb":"modeles/canape-capitonne-cuir.glb"},{"id":"plante-pot-terre-cuite","rayon":"Déco","categorie":"plante en pot, posée au sol","nom":"Plante Rosa, pot en terre cuite","largeur_cm":70,"profondeur_cm":66,"hauteur_cm":84,"prix":"89 €","texte":"Plante d intérieur au feuillage dense, dans un pot en terre cuite. À poser au sol, près d’une fenêtre.","source":"potted_plant_02","pose":"sol","glb":"modeles/plante-pot-terre-cuite.glb"},{"id":"miroir-dore-baroque","rayon":"Déco","categorie":"miroir mural, accroché au mur","nom":"Miroir Apolline, cadre doré","largeur_cm":49,"profondeur_cm":3,"hauteur_cm":74,"prix":"159 €","texte":"Cadre sculpté doré à la feuille, style baroque. À accrocher au mur, au-dessus d’une console ou d’une cheminée.","source":"ornate_mirror_01","pose":"mur","glb":"modeles/miroir-dore-baroque.glb"},{"id":"vase-ceramique","rayon":"Déco","categorie":"vase à poser sur une table ou un meuble","nom":"Vase Jeanne, céramique émaillée","largeur_cm":22,"profondeur_cm":22,"hauteur_cm":31,"prix":"45 €","texte":"Céramique émaillée faite main. À poser sur une table, une console ou une étagère.","source":"ceramic_vase_02","pose":"table","glb":"modeles/vase-ceramique.glb"},{"id":"suspension-laiton","rayon":"Luminaires","categorie":"suspension, luminaire accroché au plafond","nom":"Suspension Lucien, laiton","largeur_cm":43,"profondeur_cm":43,"hauteur_cm":95,"prix":"219 €","texte":"Abat-jour en métal, finition laiton, câble textile. Hauteur réglable, à suspendre au-dessus d’une table.","source":"modern_ceiling_lamp_01","pose":"plafond","glb":"modeles/suspension-laiton.glb"}];
+const PRODUITS = [{"id":"miroir-dore-baroque","rayon":"Déco","categorie":"miroir mural, accroché au mur","nom":"Miroir Apolline, cadre doré","largeur_cm":49,"profondeur_cm":3,"hauteur_cm":74,"prix":"159 €","texte":"Cadre sculpté doré à la feuille, style baroque. À accrocher au mur, au-dessus d’une console ou d’une cheminée.","source":"ornate_mirror_01","pose":"mur","glb":"modeles/miroir-dore-baroque.glb"},{"id":"suspension-laiton","rayon":"Luminaires","categorie":"suspension, luminaire accroché au plafond","nom":"Suspension Lucien, laiton","largeur_cm":43,"profondeur_cm":43,"hauteur_cm":95,"prix":"219 €","texte":"Abat-jour en métal, finition laiton, câble textile. Hauteur réglable, à suspendre au-dessus d’une table.","source":"modern_ceiling_lamp_01","pose":"plafond","glb":"modeles/suspension-laiton.glb"},{"id":"vase-ceramique","rayon":"Déco","categorie":"vase à poser sur une table ou un meuble","nom":"Vase Jeanne, céramique émaillée","largeur_cm":22,"profondeur_cm":22,"hauteur_cm":31,"prix":"45 €","texte":"Céramique émaillée faite main. À poser sur une table, une console ou une étagère.","source":"ceramic_vase_02","pose":"table","glb":"modeles/vase-ceramique.glb"},{"id":"plante-pot-terre-cuite","rayon":"Déco","categorie":"plante en pot, posée au sol","nom":"Plante Rosa, pot en terre cuite","largeur_cm":70,"profondeur_cm":66,"hauteur_cm":84,"prix":"89 €","texte":"Plante d intérieur au feuillage dense, dans un pot en terre cuite. À poser au sol, près d’une fenêtre.","source":"potted_plant_02","pose":"sol","glb":"modeles/plante-pot-terre-cuite.glb"},{"id":"table-basse-beton-chene","rayon":"Salon","nom":"Table basse Basile, béton et chêne","largeur_cm":120,"profondeur_cm":60,"hauteur_cm":39,"prix":"490 €","texte":"Plateau effet béton, angles incrustés et piètement traîneau en chêne massif.","source":"modern_coffee_table_01","categorie":"table basse","pose":"sol","glb":"modeles/table-basse-beton-chene.glb"},{"id":"canape-capitonne-cuir","rayon":"Salon","nom":"Canapé Émile 2 places, cuir capitonné","largeur_cm":181,"profondeur_cm":82,"hauteur_cm":71,"prix":"1 690 €","texte":"Dossier capitonné, cuir noir patiné, pieds galbés en bois foncé.","source":"sofa_02","categorie":"assise","pose":"sol","glb":"modeles/canape-capitonne-cuir.glb"},{"id":"fauteuil-chene-cuir","rayon":"Salon","nom":"Fauteuil Odile, chêne et cuir noir","largeur_cm":82,"profondeur_cm":99,"hauteur_cm":102,"prix":"690 €","texte":"Structure en chêne massif, coussins en cuir pleine fleur noir, accoudoirs en bois.","source":"modern_arm_chair_01","categorie":"assise","pose":"sol","glb":"modeles/fauteuil-chene-cuir.glb"},{"id":"fauteuil-pivotant-cuir","rayon":"Salon","nom":"Fauteuil pivotant Mila, cuir cognac","largeur_cm":101,"profondeur_cm":119,"hauteur_cm":117,"prix":"1 150 €","texte":"Coque en bois moulé, assise en cuir cognac capitonné, pied étoile pivotant en métal chromé.","source":"mid_century_lounge_chair","categorie":"assise","pose":"sol","glb":"modeles/fauteuil-pivotant-cuir.glb"},{"id":"enfilade-noyer-cannage","rayon":"Rangement","nom":"Enfilade Lison, noyer et lattes","largeur_cm":244,"profondeur_cm":52,"hauteur_cm":68,"prix":"1 290 €","texte":"Placage noyer, plateau en pierre claire, deux portes à lattes de bois, pieds en métal noir. Grand rangement pour le salon ou la salle à manger.","source":"modern_wooden_cabinet","categorie":"meuble de rangement","pose":"sol","glb":"modeles/enfilade-noyer-cannage.glb"}];
 const vue = document.getElementById("vue");
 const vign = document.getElementById("vignettes");
 let courant = 0;
@@ -282,10 +299,16 @@ function iaHistogramme(d, sansBlanc, masque) {
 const iaRessemblance = (a, b) => { let s = 0; for (let k = 0; k < a.length; k++) s += Math.sqrt(a[k] * b[k]); return s; };
 
 // Place estimée du produit dans la photo (en pixels), d'après les cotes, la pose et l'endroit touché.
-// Perspective simple : appareil tenu à 1,30 m, horizon vers 40 % de la hauteur, focale d'un téléphone (0,8 x côté long) ;
+// Perspective simple : appareil tenu à 1,30 m, focale d'un téléphone (0,8 x côté long), horizon vers 40 % de la hauteur ;
 // échelle bornée entre un produit à 1,2 m et à 6 m. Un rectangle tracé par le client donne directement l'échelle.
+// 23/11 (échelle, retour d'Antoine) : si la photo est nettement plongeante (téléphone penché d'au moins 12 degrés vers le
+// sol, mesuré par iaHorizon), on prend l'horizon mesuré, plus haut : avant, le produit au sol sortait trop petit. Et si le
+// client a agrandi ou réduit le cadre d'un glissé, z.s multiplie l'échelle.
+const HZ_DEFAUT = 0.4, HZ_PLONGEE_MIN = 12;
 function iaGeometrie(W, H, p, pose, z) {
-  const L = Math.max(W, H), f = 0.8 * L, yh = 0.4 * H;
+  const L = Math.max(W, H), f = 0.8 * L;
+  const mesure = (pose === "sol" || pose === "table") && z.yh != null && z.deg >= HZ_PLONGEE_MIN;
+  const yh = (mesure ? Math.max(-0.5, Math.min(HZ_DEFAUT, z.yh)) : HZ_DEFAUT) * H;
   const l = +p.largeur_cm || 50, pr = +p.profondeur_cm || 30, h = +p.hauteur_cm || 50;
   const rect = z.x1 != null;
   const ax = (rect ? (z.x0 + z.x1) / 2 : z.x) * W;
@@ -296,8 +319,9 @@ function iaGeometrie(W, H, p, pose, z) {
   if (rect) k = Math.min((z.x1 - z.x0) * W / largeurVue, (z.y1 - z.y0) * H / hauteurVue);
   else k = pose === "sol" ? (ay - yh) / 130 : pose === "table" ? (ay - yh) / 55 : pose === "plafond" ? (yh - ay) / 120 : f / 300;
   // Horizon mal deviné (photo plongeante, appareil bas) : le calcul donnerait un produit à plus de 4,5 m ; on prend 3 m.
-  if (!rect && k < f / 450) k = f / 300;
+  if (!rect && !mesure && k < f / 450) k = f / 300;
   k = borne(k, f / 600, f / 120);
+  if (!rect && z.s) k *= borne(z.s, 0.33, 3); // taille ajustée par le client (glissé du rond du cadre)
   const bw = largeurVue * k, bh = hauteurVue * k;
   let y0, y1;
   if (pose === "sol" || pose === "table") { y1 = ay + pr * Math.sin(dep) * k * 0.5; y0 = y1 - bh; }
@@ -309,7 +333,7 @@ function iaGeometrie(W, H, p, pose, z) {
   // pris dans la marge (table basse, cheminée, tapis, sapin). Le produit qui dépasse est recollé quand même (débord, iaControler).
   const m = 0.01 * L, bas = pose === "sol" || pose === "table" ? 0.2 * bh : 0.1 * bh;
   const masque = { x0: borne(box.x0 - 0.08 * bw - m, 0, W), y0: borne(box.y0 - 0.06 * bh - m, 0, H), x1: borne(box.x1 + 0.08 * bw + m, 0, W), y1: borne(box.y1 + bas + m, 0, H) };
-  return { k, ax, ay, dep, box, masque, W, H, pose };
+  return { k, ax, ay, dep, box, masque, W, H, pose, yh, mesure };
 }
 
 // Qualité de la photo : luminosité moyenne et netteté (variance du laplacien sur 4 x 4 cases ; on garde la case la plus
@@ -326,7 +350,47 @@ function iaQualite(src) {
     s[t] += v; s2[t] += v * v; nb[t]++;
   }
   let net = 0; for (let t = 0; t < 16; t++) if (nb[t]) net = Math.max(net, s2[t] / nb[t] - (s[t] / nb[t]) ** 2);
-  return { lum: +lum.toFixed(3), net: Math.round(net) };
+  const hz = iaHorizon(gr, w, h);
+  return { lum: +lum.toFixed(3), net: Math.round(net), horizon: hz ? hz.yh : null, inclinaison: hz ? hz.deg : null };
+}
+
+// Horizon de la photo (ajout du 23/11, problème d'échelle vu par Antoine : un canapé trop petit à côté du sien).
+// Avant, l'horizon était supposé à 40 % de la hauteur. Or on photographie souvent sa pièce téléphone penché vers le sol :
+// l'horizon est alors bien plus haut (parfois hors de la photo) et le produit sortait trop petit (jusqu'à 30 % de moins).
+// On mesure l'inclinaison du téléphone sur la photo elle-même : les verticales de la pièce (montants de porte, angles de
+// murs, pieds de meubles, rideaux) se rapprochent vers le bas quand le téléphone penche vers le sol, vers le haut quand il
+// vise le plafond. Pente des contours presque verticaux en fonction de l'écart au centre, ajustée par moindres carrés
+// pondérés et robustes ; on en déduit l'inclinaison, puis l'horizon. Renvoie null si la photo a trop peu de verticales.
+function iaHorizon(gr, w, h) {
+  const cx = (w - 1) / 2, cy = (h - 1) / 2, f = 0.8 * Math.max(w, h);
+  const P = [];
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const dx = x - cx; if (Math.abs(dx) < 0.12 * w) continue;
+    const j = y * w + x;
+    const gx = gr[j - w + 1] + 2 * gr[j + 1] + gr[j + w + 1] - gr[j - w - 1] - 2 * gr[j - 1] - gr[j + w - 1];
+    const gy = gr[j + w - 1] + 2 * gr[j + w] + gr[j + w + 1] - gr[j - w - 1] - 2 * gr[j - w] - gr[j - w + 1];
+    const m = Math.abs(gx) + Math.abs(gy);
+    if (m < 90 || Math.abs(gy) > 0.3 * Math.abs(gx)) continue;
+    P.push(dx, y, -gy / gx, m);
+  }
+  const n = P.length / 4; if (n < 200) return null;
+  let a = 0, b = 0, lim = 1;
+  for (let it = 0; it < 4; it++) {
+    let sw = 0, sx = 0, ss = 0, sxx = 0, sxs = 0; const res = [];
+    for (let i = 0; i < P.length; i += 4) {
+      const r = Math.abs(P[i + 2] - a - b * P[i]); if (r > lim) continue;
+      const wt = P[i + 3]; sw += wt; sx += wt * P[i]; ss += wt * P[i + 2]; sxx += wt * P[i] * P[i]; sxs += wt * P[i] * P[i + 2];
+    }
+    const d = sw * sxx - sx * sx; if (!sw || !d) return null;
+    b = (sw * sxs - sx * ss) / d; a = (ss - b * sx) / sw;
+    for (let i = 0; i < P.length; i += 4) res.push(Math.abs(P[i + 2] - a - b * P[i]));
+    res.sort((u, v) => u - v); lim = Math.max(0.02, 2.5 * res[res.length >> 1]);
+  }
+  let sw = 0, sy = 0; for (let i = 0; i < P.length; i += 4) if (Math.abs(P[i + 2] - a - b * P[i]) <= lim) { sw += P[i + 3]; sy += P[i + 3] * P[i + 1]; }
+  const ym = sy / sw;
+  // Les verticales passent par un point de fuite (cx, yV) : pente = -(x - cx) / (yV - y), donc b = -1 / (yV - ym).
+  const t = borne(f * b / (b * (ym - cy) - 1), -0.3, 1.2); // tangente de l'inclinaison vers le sol
+  return { yh: +((cy - f * t) / h).toFixed(3), deg: +(Math.atan(t) * 180 / Math.PI).toFixed(1), n };
 }
 // Seuils de la vérification (réglés le 22/11 sur les 21 photos d'essai : aucune bonne photo refusée).
 const VERIF_COTE_MIN = 480, VERIF_LUM_MIN = 0.07, VERIF_NET_MIN = 60;
@@ -352,36 +416,74 @@ function iaVerifier(photo, qualite, p, pose, z) {
 // la photo) une fois la vérification passée, ou null si le client ferme, change de photo ou choisit « Voir chez moi ».
 function iaChoisirZone(url, photo, qualite, p, pose, numero, total) {
   if (ia.zoneAuto) { // essais automatiques : zone donnée d'avance, même vérification
-    const z = ia.zoneAuto, v = iaVerifier(photo, qualite, p, pose, z);
+    const z = { yh: qualite.horizon, deg: qualite.inclinaison, ...ia.zoneAuto }, v = iaVerifier(photo, qualite, p, pose, z);
     return Promise.resolve(v.ok ? { z, v } : { refus: v });
   }
   const dlg = document.getElementById("dlgZone"), img = document.getElementById("zoneImg"), cadre = document.getElementById("zoneCadre"), point = document.getElementById("zonePoint");
   const refus = document.getElementById("zoneRefus"), zp = document.getElementById("zonePhoto");
   document.getElementById("tZone").textContent = total > 1 ? `Photo ${numero} sur ${total} : touchez l'endroit voulu` : "Touchez l'endroit voulu";
-  document.getElementById("zoneConsigne").textContent = `Touchez votre photo ${POSE_TXT[pose]} (${p.nom.split(",")[0]}, ${p.largeur_cm} x ${p.profondeur_cm} x ${p.hauteur_cm} cm). Vous pouvez aussi tracer un petit rectangle avec le doigt.`;
-  img.src = url; cadre.hidden = true; point.hidden = true; refus.hidden = true;
+  document.getElementById("zoneConsigne").textContent = `Touchez un endroit libre de votre photo, ${POSE_TXT[pose]} (${p.nom.split(",")[0]}, ${p.largeur_cm} x ${p.profondeur_cm} x ${p.hauteur_cm} cm). Évitez de toucher un meuble ou un objet déjà là : l'IA risquerait de l'effacer.`;
+  const poignee = document.getElementById("zonePoignee"), ajuste = document.getElementById("zoneAjuste"), creer = document.getElementById("zoneCreer");
+  img.src = url; cadre.hidden = true; point.hidden = true; refus.hidden = true; poignee.hidden = true; ajuste.hidden = true;
+  // 23/11 (échelle) : après le toucher, le cadre montre la taille estimée du produit. Si elle convient, l'image se crée
+  // seule au bout de 4 secondes (une photo, un toucher). Sinon, le client fait glisser le rond au coin du cadre pour
+  // agrandir ou réduire le produit (en le comparant à un meuble de sa photo), puis touche « Créer l'image ».
+  const W = photo.naturalWidth, H = photo.naturalHeight, DELAI = 4;
+  const hz = { yh: qualite.horizon, deg: qualite.inclinaison };
   return new Promise((fin) => {
-    let debut = null, fini = false;
+    let debut = null, fini = false, choix = null, taille = null, minuterie = null, dernier = null;
     const pos = (e) => { const r = img.getBoundingClientRect(); return { x: borne((e.clientX - r.left) / r.width, 0, 1), y: borne((e.clientY - r.top) / r.height, 0, 1), r }; };
-    const montrerCadre = (b, W, H) => { const s = cadre.style; s.left = (b.x0 / W * 100) + "%"; s.top = (b.y0 / H * 100) + "%"; s.width = ((b.x1 - b.x0) / W * 100) + "%"; s.height = ((b.y1 - b.y0) / H * 100) + "%"; cadre.hidden = false; };
-    const terminer = (v) => { if (fini) return; fini = true; zp.removeEventListener("pointerdown", bas); zp.removeEventListener("pointermove", bouge); zp.removeEventListener("pointerup", haut); dlg.removeEventListener("close", ferme); if (dlg.open) dlg.close(); fin(v); };
-    const bas = (e) => { if (refus.hidden === false) refus.hidden = true; debut = pos(e); zp.setPointerCapture?.(e.pointerId); point.hidden = false; point.style.left = (debut.x * 100) + "%"; point.style.top = (debut.y * 100) + "%"; cadre.hidden = true; };
-    const bouge = (e) => { if (!debut) return; const q = pos(e); if (Math.hypot((q.x - debut.x) * debut.r.width, (q.y - debut.y) * debut.r.height) < 14) return; point.hidden = true; const W = photo.naturalWidth, H = photo.naturalHeight; montrerCadre({ x0: Math.min(debut.x, q.x) * W, y0: Math.min(debut.y, q.y) * H, x1: Math.max(debut.x, q.x) * W, y1: Math.max(debut.y, q.y) * H }, W, H); };
-    const haut = (e) => {
-      if (!debut) return; const q = pos(e), d0 = debut; debut = null;
-      const glisse = Math.hypot((q.x - d0.x) * d0.r.width, (q.y - d0.y) * d0.r.height) >= 14;
-      const z = glisse ? { x0: Math.min(d0.x, q.x), y0: Math.min(d0.y, q.y), x1: Math.max(d0.x, q.x), y1: Math.max(d0.y, q.y) } : { x: d0.x, y: d0.y };
+    const montrerCadre = (b) => { const s = cadre.style; s.left = (b.x0 / W * 100) + "%"; s.top = (b.y0 / H * 100) + "%"; s.width = ((b.x1 - b.x0) / W * 100) + "%"; s.height = ((b.y1 - b.y0) / H * 100) + "%"; cadre.hidden = false; };
+    // Point fixe (là où le produit s'appuie) et coin du cadre qui porte le rond.
+    const reperes = (g) => { const b = g.box; return { A: { x: g.ax, y: pose === "plafond" ? b.y0 : pose === "mur" ? (b.y0 + b.y1) / 2 : b.y1 }, C: { x: b.x1, y: pose === "plafond" ? b.y1 : b.y0 } }; };
+    const montrerPoignee = (g) => { const { C } = reperes(g); poignee.style.left = (borne(C.x / W, 0, 1) * 100) + "%"; poignee.style.top = (borne(C.y / H, 0, 1) * 100) + "%"; poignee.hidden = false; };
+    const arreterMinuterie = () => { if (minuterie) { clearInterval(minuterie); minuterie = null; } creer.textContent = "Créer l'image"; };
+    const terminer = (v) => { if (fini) return; fini = true; arreterMinuterie(); zp.removeEventListener("pointerdown", bas); zp.removeEventListener("pointermove", bouge); zp.removeEventListener("pointerup", haut); dlg.removeEventListener("close", ferme); if (dlg.open) dlg.close(); fin(v); };
+    const proposer = (z, v) => { // le cadre est bon : on montre l'ajustement et le compte à rebours
+      choix = { z, v }; montrerCadre(v.geo.box); refus.hidden = true; ajuste.hidden = false;
+      if (z.x1 == null) montrerPoignee(v.geo); else poignee.hidden = true;
+      arreterMinuterie(); let reste = DELAI; creer.textContent = `Créer l'image (${reste})`;
+      minuterie = setInterval(() => { reste--; if (reste <= 0) { arreterMinuterie(); terminer(choix); } else creer.textContent = `Créer l'image (${reste})`; }, 1000);
+    };
+    const verifier = (z) => {
+      if (z.x1 == null) dernier = z;
       const v = iaVerifier(photo, qualite, p, pose, z);
       ia.bilan.push({ photo: numero, zone: z, verification: v.ok ? "ok" : v.code });
-      if (v.geo) montrerCadre(v.geo.box, photo.naturalWidth, photo.naturalHeight);
-      if (!v.ok) { document.getElementById("zoneMsg").textContent = v.raison; refus.hidden = false; return; }
-      setTimeout(() => terminer({ z, v }), 700); // le client voit la place estimée du produit, puis l'IA démarre
+      if (v.geo) montrerCadre(v.geo.box);
+      if (!v.ok) { choix = null; arreterMinuterie(); ajuste.hidden = true; if (v.geo && z.x1 == null) montrerPoignee(v.geo); else poignee.hidden = true; document.getElementById("zoneMsg").textContent = v.raison; refus.hidden = false; return; }
+      proposer(z, v);
     };
+    const bas = (e) => {
+      arreterMinuterie(); zp.setPointerCapture?.(e.pointerId);
+      if (e.target === poignee && dernier) { // glissé du rond : on garde l endroit, on change la taille
+        const z = dernier, g = iaGeometrie(W, H, p, pose, z), { A, C } = reperes(g);
+        taille = { z, A, C, s0: z.s || 1 }; return;
+      }
+      taille = null; if (refus.hidden === false) refus.hidden = true;
+      debut = pos(e); point.hidden = false; point.style.left = (debut.x * 100) + "%"; point.style.top = (debut.y * 100) + "%"; cadre.hidden = true; poignee.hidden = true; ajuste.hidden = true; choix = null;
+    };
+    const bouge = (e) => {
+      if (taille) {
+        const q = pos(e), P = { x: q.x * W, y: q.y * H }, { A, C } = taille, vx = C.x - A.x, vy = C.y - A.y;
+        const r = ((P.x - A.x) * vx + (P.y - A.y) * vy) / Math.max(1, vx * vx + vy * vy);
+        taille.z = { ...taille.z, s: borne(taille.s0 * r, 0.33, 3) };
+        const g = iaGeometrie(W, H, p, pose, taille.z); montrerCadre(g.box); montrerPoignee(g); return;
+      }
+      if (!debut) return; const q = pos(e); if (Math.hypot((q.x - debut.x) * debut.r.width, (q.y - debut.y) * debut.r.height) < 14) return; point.hidden = true; montrerCadre({ x0: Math.min(debut.x, q.x) * W, y0: Math.min(debut.y, q.y) * H, x1: Math.max(debut.x, q.x) * W, y1: Math.max(debut.y, q.y) * H });
+    };
+    const haut = (e) => {
+      if (taille) { const z = taille.z; taille = null; ia.bilan.push({ photo: numero, taille: z.s }); verifier(z); arreterMinuterie(); return; } // après un ajustement, le client confirme lui-même
+      if (!debut) return; const q = pos(e), d0 = debut; debut = null;
+      const glisse = Math.hypot((q.x - d0.x) * d0.r.width, (q.y - d0.y) * d0.r.height) >= 14;
+      const z = glisse ? { x0: Math.min(d0.x, q.x), y0: Math.min(d0.y, q.y), x1: Math.max(d0.x, q.x), y1: Math.max(d0.y, q.y), ...hz } : { x: d0.x, y: d0.y, ...hz };
+      verifier(z);
+    };
+    creer.onclick = () => { if (choix) terminer(choix); };
     const ferme = () => terminer(null);
     zp.addEventListener("pointerdown", bas); zp.addEventListener("pointermove", bouge); zp.addEventListener("pointerup", haut);
     dlg.addEventListener("close", ferme);
     document.getElementById("zoneFermer").onclick = () => terminer(null);
-    document.getElementById("zoneAutreEndroit").onclick = () => { refus.hidden = true; cadre.hidden = true; point.hidden = true; };
+    document.getElementById("zoneAutreEndroit").onclick = () => { refus.hidden = true; cadre.hidden = true; point.hidden = true; poignee.hidden = true; ajuste.hidden = true; choix = null; taille = null; };
     document.getElementById("zoneAutrePhoto").onclick = () => terminer(null);
     document.getElementById("zoneVoirChezMoi").onclick = () => { terminer(null); document.getElementById("voir").click(); };
     dlg.showModal();
