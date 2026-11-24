@@ -1,1 +1,0 @@
-Photos de pièces Poly Haven (polyhaven.com, licence CC0), pour les essais de « Voir avec ma photo (IA) ». piece10 retournée (elle était couchée) ; piece11 à piece21 ajoutées le 22/11 ; piece-floue et piece-sombre dérivées de piece1 et piece3 pour tester la vérification. À retirer après les essais.
