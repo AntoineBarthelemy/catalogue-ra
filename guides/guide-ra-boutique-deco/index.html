@@ -1,0 +1,54 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Réalité augmentée pour une boutique de déco : par où commencer</title>
+<meta name="description" content="La réalité augmentée permet à un client de voir un produit chez lui, à sa vraie taille, avec la caméra de son téléphone, avant de commander. Pour une petit">
+<style>
+:root{--fond:#f3f4f1;--surface:#fff;--texte:#1c2321;--doux:#5d6764;--accent:#1f7a5c;--trait:#dfe3df}
+@media (prefers-color-scheme:dark){:root{--fond:#121614;--surface:#1b201e;--texte:#e8ece9;--doux:#a3ada9;--accent:#4cc39a;--trait:#2c3330;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;background:var(--fond);color:var(--texte);font:17px/1.6 "Segoe UI",system-ui,sans-serif}
+main{max-width:720px;margin:0 auto;padding:32px 16px 64px}h1{font-size:clamp(26px,6vw,38px);line-height:1.15;margin:0 0 16px}
+h2{font-size:21px;margin:32px 0 8px}a{color:var(--accent);overflow-wrap:anywhere}li{margin:4px 0}
+.sources{font-size:14px;color:var(--doux);border-top:1px solid var(--trait);padding-top:12px;margin-top:32px}
+</style></head><body><main><h1>Réalité augmentée pour une boutique de déco : par où commencer</h1>
+<p>La réalité augmentée permet à un client de voir un produit chez lui, à sa vraie taille, avec la caméra de son téléphone, avant de commander. Pour une petite boutique en ligne, on peut commencer simplement, sans application ni gros budget. Voici l'ordre que je conseille.</p>
+<h2>1. Choisir les bons produits pour commencer</h2>
+<p>Tous les produits n'en tirent pas le même profit. Commencez par ceux où le client hésite sur la taille ou la place :</p>
+<ul>
+<li>les meubles (canapé, table basse, enfilade, fauteuil) : « est-ce que ça rentre ? » ;</li>
+<li>les luminaires suspendus et les miroirs : la bonne hauteur et la bonne proportion sont difficiles à imaginer sur une photo ;</li>
+<li>les grands objets de déco et les plantes en pot.</li>
+</ul>
+<p>Les petits objets (bougies, coussins, vaisselle) gagnent moins : une bonne photo suffit souvent.</p>
+<p>Trois à cinq produits bien faits valent mieux qu'un catalogue entier approximatif.</p>
+<h2>2. Comprendre ce qu'il faut techniquement</h2>
+<ul>
+<li>Un modèle 3D de chaque produit, en deux formats : GLB (Android, navigateurs) et USDZ (iPhone).</li>
+<li>Un affichage sur la fiche produit : sur Shopify, c'est déjà prévu (le modèle s'ajoute comme une photo) ; sur un autre site, une visionneuse libre comme model-viewer de Google fait le même travail.</li>
+<li>Côté client : rien à installer. Sur iPhone, la réalité augmentée passe par AR Quick Look ; sur Android, par Scene Viewer, sur les téléphones compatibles ARCore.</li>
+</ul>
+<h2>3. Obtenir les modèles 3D</h2>
+<p>C'est l'étape qui demande le plus de soin.</p>
+<ul>
+<li>Demandez d'abord à vos fournisseurs : certains fabricants ont déjà des fichiers 3D. Vérifiez que vous avez le droit de les publier.</li>
+<li>Les outils d'IA qui créent un modèle à partir de photos sont rapides et peu chers, mais la forme et les cotes sont approximatives : présentez-les comme une représentation.</li>
+<li>Un modèle fait à partir des cotes exactes et de vos photos est le plus fidèle. C'est lui qu'il faut pour les produits où la taille décide de l'achat.</li>
+</ul>
+<h2>4. Soigner ce qui fait confiance</h2>
+<ul>
+<li>La taille d'abord : posez le modèle à côté d'un meuble connu et mesurez. Un canapé qui paraît plus petit qu'en vrai crée des retours.</li>
+<li>Les matières ensuite : bois, lin, laiton, verre. Le client doit reconnaître le produit.</li>
+<li>Le poids du fichier : 2 à 10 Mo pour un meuble, pour un affichage rapide sur téléphone.</li>
+</ul>
+<h2>5. Le dire à vos clients</h2>
+<ul>
+<li>Un bouton visible sur la fiche, avec un texte clair : « Voir chez moi ».</li>
+<li>Une phrase d'aide : « Pointez votre téléphone vers le sol, le produit apparaît à sa vraie taille. »</li>
+<li>Dans vos mails et sur vos réseaux, une courte vidéo d'écran du téléphone vaut mieux qu'une longue explication.</li>
+</ul>
+<h2>6. Mesurer</h2>
+<p>Comparez sur quelques semaines, pour les produits équipés : le nombre de clients qui touchent le bouton, le taux d'achat et les retours pour « taille ou rendu différent ». C'est ce qui dit s'il faut équiper d'autres produits.</p>
+<h2>Pour aller plus loin</h2>
+<p>Je fabrique des modèles 3D aux cotes exactes pour des boutiques de meubles et de déco, avec deux boutons : « Voir chez moi » (réalité augmentée) et « Voir avec ma photo » (le produit posé dans une photo de la pièce du client, sans IA qui redessine la photo). Démonstration sur une boutique fictive : <a href="https://antoinebarthelemy.dev/catalogue-ra/boutique/">https://antoinebarthelemy.dev/catalogue-ra/boutique/</a> Le premier modèle est offert, et l'abonnement est sans engagement : il s'arrête quand vous voulez.</p>
+<p>Une question ? Écrivez-moi : <a href="mailto:antoinebarthelemy60@gmail.com">antoinebarthelemy60@gmail.com</a>. Votre adresse ne sert qu'à vous répondre : ce site ne stocke rien et ne la transmet à personne.</p>
+<p class="sources">Source (lue le 26/11/2026) : aide Shopify sur les modèles 3D (help.shopify.com/en/manual/products/product-media/add-3d-models). Pour aller plus loin : documentation de model-viewer (modelviewer.dev), Apple AR Quick Look (developer.apple.com/augmented-reality/quick-look), Google Scene Viewer (developers.google.com/ar/develop/scene-viewer).</p>
+<p class="sources">© 2026 Antoine Barthélémy, tous droits réservés.</p>
+</main></body></html>

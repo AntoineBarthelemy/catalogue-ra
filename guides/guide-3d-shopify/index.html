@@ -1,0 +1,54 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Montrer ses meubles en 3D sur Shopify : le guide pas à pas</title>
+<meta name="description" content="Shopify sait afficher un produit en 3D et le poser chez le client en réalité augmentée, sans application à installer. Ce qui manque presque toujours, c'est">
+<style>
+:root{--fond:#f3f4f1;--surface:#fff;--texte:#1c2321;--doux:#5d6764;--accent:#1f7a5c;--trait:#dfe3df}
+@media (prefers-color-scheme:dark){:root{--fond:#121614;--surface:#1b201e;--texte:#e8ece9;--doux:#a3ada9;--accent:#4cc39a;--trait:#2c3330;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;background:var(--fond);color:var(--texte);font:17px/1.6 "Segoe UI",system-ui,sans-serif}
+main{max-width:720px;margin:0 auto;padding:32px 16px 64px}h1{font-size:clamp(26px,6vw,38px);line-height:1.15;margin:0 0 16px}
+h2{font-size:21px;margin:32px 0 8px}a{color:var(--accent);overflow-wrap:anywhere}li{margin:4px 0}
+.sources{font-size:14px;color:var(--doux);border-top:1px solid var(--trait);padding-top:12px;margin-top:32px}
+</style></head><body><main><h1>Montrer ses meubles en 3D sur Shopify : le guide pas à pas</h1>
+<p>Shopify sait afficher un produit en 3D et le poser chez le client en réalité augmentée, sans application à installer. Ce qui manque presque toujours, c'est le fichier 3D du produit. Voici comment s'y prendre, étape par étape.</p>
+<h2>1. Ce que Shopify fait déjà, gratuitement</h2>
+<ul>
+<li>Une fiche produit accepte des modèles 3D aux formats GLB et USDZ, jusqu'à 500 Mo par modèle (au-delà de 15 Mo, Shopify optimise le fichier).</li>
+<li>Le modèle s'affiche dans la galerie de la fiche : le client le fait tourner du doigt.</li>
+<li>Sur téléphone, un bouton « Afficher dans votre espace » ouvre la réalité augmentée : AR Quick Look sur iPhone, Scene Viewer sur Android. Le client pose le produit chez lui, à sa vraie taille.</li>
+<li>Condition : un thème qui gère la 3D. Les thèmes récents de Shopify (Online Store 2.0, comme Dawn) le font ; un thème ancien ou très modifié peut demander une retouche.</li>
+</ul>
+<h2>2. Ce que Shopify ne fait pas : le modèle 3D</h2>
+<p>Shopify ne fabrique pas les modèles. Il propose deux pistes : son scanner 3D (iPhone 12 Pro ou plus récent, ou iPad Pro, pas sur Android, environ 10 à 15 minutes par objet) ou un prestataire. Le scan convient aux petits objets ; pour un canapé, une table ou une enfilade, il ne garantit pas les cotes.</p>
+<p>Les autres façons d'obtenir un modèle :</p>
+<ul>
+<li>Le fabricant du produit en a parfois un (demandez le fichier GLB ou USDZ, et le droit de l'utiliser sur votre site).</li>
+<li>Un modèle généré par IA à partir de photos : rapide et peu cher, mais la forme et les dimensions sont approximatives. À présenter comme une représentation.</li>
+<li>Un modèle fait à la main à partir des cotes et des photos : le plus fidèle, plus long à produire.</li>
+</ul>
+<p>Pour un meuble, la taille est la vraie question du client (« est-ce que ça rentre ? ») : un modèle aux cotes exactes vaut mieux qu'un beau modèle approximatif.</p>
+<h2>3. Préparer un bon modèle</h2>
+<ul>
+<li>Les cotes exactes du produit (largeur, profondeur, hauteur), en centimètres.</li>
+<li>4 à 8 photos nettes sous plusieurs angles, sur fond simple, et une photo de près de chaque matière (bois, tissu, métal).</li>
+<li>Un fichier léger : 2 à 10 Mo suffisent pour un meuble. Au-delà, l'affichage est lent sur téléphone.</li>
+<li>Le produit posé au sol à l'origine, l'avant tourné vers la caméra, l'échelle en mètres : sinon il apparaît flottant, de travers ou minuscule.</li>
+</ul>
+<h2>4. L'ajouter à la fiche produit</h2>
+<ol>
+<li>Dans l'administration Shopify : Produits, puis le produit voulu.</li>
+<li>Section « Supports multimédias » : « Ajouter », puis choisissez le fichier GLB (Shopify crée la version USDZ pour l'iPhone).</li>
+<li>Placez le modèle en tête de la galerie si vous voulez qu'on le voie en premier.</li>
+<li>Enregistrez, puis ouvrez la fiche sur un téléphone : le bouton de réalité augmentée doit apparaître.</li>
+</ol>
+<h2>5. Vérifier comme un client</h2>
+<ul>
+<li>Sur un iPhone et sur un Android : le bouton apparaît-il, le produit se pose-t-il au sol ?</li>
+<li>Mesurez : posez le produit à côté d'un meuble connu. Une erreur de taille fait plus de tort que pas de 3D du tout.</li>
+<li>Regardez les matières à la lumière du jour : un bois trop brillant ou un tissu plastique se voient tout de suite.</li>
+</ul>
+<h2>Pour aller plus loin</h2>
+<p>Je fabrique des modèles 3D aux cotes exactes pour des boutiques de meubles et de déco, avec deux boutons : « Voir chez moi » (réalité augmentée) et « Voir avec ma photo » (le produit posé dans une photo de la pièce du client). Démonstration sur une boutique fictive : <a href="https://antoinebarthelemy.dev/catalogue-ra/boutique/">https://antoinebarthelemy.dev/catalogue-ra/boutique/</a> Le premier modèle est offert, et l'abonnement est sans engagement : il s'arrête quand vous voulez.</p>
+<p>Une question sur votre boutique ? Écrivez-moi : <a href="mailto:antoinebarthelemy60@gmail.com">antoinebarthelemy60@gmail.com</a>. Votre adresse ne sert qu'à vous répondre : ce site ne stocke rien et ne la transmet à personne.</p>
+<p class="sources">Sources (lues le 26/11/2026) : aide Shopify, types de supports multimédias (help.shopify.com/en/manual/products/product-media/product-media-types), ajout de modèles 3D (help.shopify.com/en/manual/products/product-media/add-3d-models), scanner 3D (help.shopify.com/en/manual/products/product-media/3d-scanner), documentation des thèmes (shopify.dev/docs/storefronts/themes/product-merchandising/media/support-media).</p>
+<p class="sources">© 2026 Antoine Barthélémy, tous droits réservés.</p>
+</main></body></html>
